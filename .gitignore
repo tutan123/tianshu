@@ -1,0 +1,9 @@
+# Downloaded source archives; runtime uses the converted offline mesh.
+assets/kenney-furniture.zip
+assets/kenney-nature.zip
+assets/kenney-furniture/Models/
+assets/kenney-nature/Models/
+
+# Generated browser captures.
+tests/screenshots/
+.playwright-mcp/

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17221e">
+  <title>天枢 · 重返江大</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="upgrade.css">
+  <link rel="stylesheet" href="exploration.css">
+  <script defer src="vendor/lucide.min.js"></script>
+  <script defer src="content.js"></script>
+  <script defer src="state.js"></script>
+  <script defer src="rpg.js"></script>
+  <script defer src="exploration.js"></script>
+  <script defer src="growth-ui.js"></script>
+  <script defer src="vendor/matter.min.js"></script>
+  <script defer src="salvage.js"></script>
+  <script defer src="minigames.js"></script>
+  <script defer src="vendor/three.min.js"></script>
+  <script defer src="assets/clocktower-mesh.js"></script>
+  <script defer src="assets/kenney-meshes.js"></script>
+  <script defer src="world-art.js"></script>
+  <script defer src="campus3d.js"></script>
+  <script defer src="game.js"></script>
+</head>
+<body>
+  <main id="world">
+    <div id="map-viewport" aria-label="江城大学校园地图">
+      <div id="map-plane"><img id="campus" src="assets/campus.png" alt="江城大学全景：钟楼、镜湖、图书馆与学生宿舍" draggable="false"><div id="pins"></div></div>
+      <div class="map-shade"></div>
+    </div>
+    <div id="map3d" aria-label="江城大学三维校园地图" hidden><div class="world-shade"></div><div id="pins-3d"></div></div>
+    <div class="explore-bar" hidden id="explore-bar"><button class="secondary" id="exit-walk"><i data-lucide="arrow-left"></i><span>校园全景</span></button><span id="explore-place">学生宿舍</span><button class="icon-button" id="floor-map" title="切换全区地图" aria-label="切换全区地图"><i data-lucide="map"></i></button></div>
+    <div id="exploration-journal" hidden><span>校史寻踪</span><strong id="stamp-progress">0 / 8</strong><small id="exploration-progress">寻找校园里的八枚印章</small></div>
+    <div id="mini-frame" hidden aria-label="三维校园小地图"><span>江大 · 北 ↑</span></div>
+    <div id="walk-controls" hidden>
+      <div class="direction-pad" aria-label="移动方向"><button data-direction="up" title="向前" aria-label="向前"><i data-lucide="arrow-up"></i></button><button data-direction="left" title="向左" aria-label="向左"><i data-lucide="arrow-left"></i></button><button data-direction="down" title="向后" aria-label="向后"><i data-lucide="arrow-down"></i></button><button data-direction="right" title="向右" aria-label="向右"><i data-lucide="arrow-right"></i></button></div>
+      <button id="near-interact" class="primary" disabled><i data-lucide="message-circle"></i><span>暂无附近事件</span></button>
+      <button id="near-discover" class="secondary" disabled><i data-lucide="scan-search"></i><span>调查附近</span></button>
+      <button id="world-interact" class="primary" disabled><i data-lucide="hand"></i><span>附近没有可互动对象</span><kbd>E</kbd></button>
+    </div>
+    <header class="topbar">
+      <a class="brand" href="#" id="home" aria-label="天枢校园"><span class="brand-symbol">枢</span><span><strong>天枢</strong><small>重返江大</small></span></a>
+      <div class="top-divider"></div><span class="edition">第一章 <span> / </span> 重启人生</span>
+      <div class="top-stats" id="top-stats"></div>
+      <button class="icon-button" data-panel="settings" title="设置" aria-label="设置"><i data-lucide="settings-2"></i></button>
+    </header>
+    <aside class="journey">
+      <div class="date-line"><i data-lucide="sun"></i><span id="date">2018.09.03 · 清晨</span><span class="weather">晴 · 24°C</span></div>
+      <div class="chapter-tag">CHAPTER 01 <span>命运重启</span></div>
+      <h1>江城大学</h1><p class="world-caption">一切尚未发生。<br>一切皆有可能。</p>
+      <section class="objective"><div class="section-label"><span class="tiny-dot"></span>当前主线 <span id="progress"></span></div><button id="quest-jump"><span id="quest-title"></span><i data-lucide="arrow-up-right"></i></button><p id="quest-lead"></p><div class="progress-track"><span id="progress-fill"></span></div></section>
+      <button id="growth-summary" data-panel="rpg" class="growth-summary"><span>陈旭 <b id="host-level">Lv.1</b></span><span id="host-xp">0 EXP</span><i data-lucide="chevron-right"></i></button>
+      <div class="event-heading">校园动态 <span id="side-count"></span></div><div id="event-list"></div>
+    </aside>
+    <div class="map-tools"><button class="icon-button" id="zoom-in" title="放大地图" aria-label="放大地图"><i data-lucide="plus"></i></button><button class="icon-button" id="zoom-out" title="缩小地图" aria-label="缩小地图"><i data-lucide="minus"></i></button><button class="icon-button" id="reset-map" title="复位地图" aria-label="复位地图"><i data-lucide="locate-fixed"></i></button><button class="icon-button" id="walk-toggle" title="进入步行探索" aria-label="进入步行探索"><i data-lucide="footprints"></i></button></div>
+    <div class="weather-tools" role="group" aria-label="校园天气"><button class="icon-button" data-weather="auto" title="跟随剧情时段" aria-label="跟随剧情时段" aria-pressed="true"><i data-lucide="clock-3"></i></button><button class="icon-button" data-weather="day" title="晴日" aria-label="晴日" aria-pressed="false"><i data-lucide="sun"></i></button><button class="icon-button" data-weather="night" title="夜晚" aria-label="夜晚" aria-pressed="false"><i data-lucide="moon"></i></button><button class="icon-button" data-weather="rain" title="雨夜" aria-label="雨夜" aria-pressed="false"><i data-lucide="cloud-rain"></i></button></div>
+    <section class="location-sheet" id="location-sheet" aria-label="地点详情"></section>
+    <div class="system-status"><span class="status-light"></span><span id="system-label">天枢 · 等待接入</span><small id="saved-status">本地记录就绪</small></div>
+    <nav class="bottom-nav" aria-label="游戏导航">
+      <button class="active" id="nav-map"><i data-lucide="map"></i><span>校园</span></button>
+      <button data-panel="rpg"><i data-lucide="backpack"></i><span>成长</span></button>
+      <button data-panel="modules"><i data-lucide="cpu"></i><span>天枢</span></button>
+      <button data-panel="people"><i data-lucide="users"></i><span>羁绊</span></button>
+      <button data-panel="phone"><i data-lucide="message-circle"></i><span>消息</span><b class="badge" id="message-count" hidden></b></button>
+      <button data-panel="timeline"><i data-lucide="git-branch"></i><span>命运轨迹</span></button>
+      <button data-panel="saves"><i data-lucide="bookmark"></i><span>存档</span></button>
+    </nav>
+    <div class="map-coordinate">JIANGCHENG UNIVERSITY<br><span>30° 35′ N · 114° 18′ E</span></div>
+  </main>
+  <section id="cinema" hidden aria-label="剧情演出">
+    <div id="scene-image"></div><video id="scene-video" playsinline preload="auto" muted loop></video><div class="cine-vignette"></div>
+    <header class="cine-top"><div><span id="scene-chapter"></span><h2 id="scene-title"></h2></div><div class="cine-actions"><button class="icon-button" data-panel="history" title="台词回顾" aria-label="台词回顾"><i data-lucide="history"></i></button><button class="icon-button" id="pause" title="暂停" aria-label="暂停"><i data-lucide="pause"></i></button><button class="icon-button" data-panel="settings" title="演出设置" aria-label="演出设置"><i data-lucide="settings-2"></i></button><button id="skip" class="quiet-button"><i data-lucide="chevrons-right"></i>略过演出</button></div></header>
+    <div class="cine-compute"><i data-lucide="cpu"></i><span id="cine-compute"></span><span class="status-light"></span></div>
+    <div id="shot-track"></div>
+    <div id="dialogue"><div class="speaker-line"><span id="speaker"></span><span id="speaker-role"></span></div><p id="subtitle"></p><div class="dialogue-foot"><span id="shot-number"></span><button id="auto-play" class="quiet-button">自动 <span>关</span></button><button id="next-line" class="next-button">继续<i data-lucide="arrow-right"></i></button></div></div>
+    <div id="interaction" hidden></div><div id="pause-shade" hidden><i data-lucide="pause"></i><h2>时刻暂停</h2><button class="primary" id="resume">继续<i data-lucide="play"></i></button></div>
+    <div id="media-note" hidden>影像暂未载入，正在继续场景演出</div>
+  </section>
+  <dialog id="panel"><div class="panel-header"><div><span id="panel-eyebrow">TIANSHU</span><h2 id="panel-title"></h2></div><button class="icon-button" id="close-panel" title="关闭" aria-label="关闭面板"><i data-lucide="x"></i></button></div><div id="panel-body"></div></dialog>
+  <dialog id="world-dialog"><div class="world-dialog-head"><span id="world-dialog-type">校园见闻</span><button id="world-dialog-close" class="icon-button" title="结束交谈" aria-label="结束交谈"><i data-lucide="x"></i></button></div><h2 id="world-dialog-title"></h2><p id="world-dialog-text"></p><div id="world-dialog-actions"></div></dialog>
+  <div id="toasts" role="status" aria-live="polite"></div>
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+  <noscript>请启用 JavaScript 以开始天枢。</noscript>
+</body>
+</html>
