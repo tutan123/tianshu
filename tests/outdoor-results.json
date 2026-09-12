@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "testedAt": "2026-09-12T14:43:19.422Z",
+  "checks": [
+    "Route to dorm-annex-door",
+    "Annex door opens interior: dorm-annex-door",
+    "Route to dorm-west-door",
+    "Annex door opens interior: dorm-west-door",
+    "Route to gate-east-door",
+    "Annex door opens interior: gate-east-door",
+    "Route to woodland-cache",
+    "Player reaches raised terrace via stairs",
+    "Cliff blocks side entry and keeps stairs open",
+    "Route to woodland-npc",
+    "Woodland NPC describes alternate path",
+    "Route to woodland-herbs",
+    "Forest branch leads to persistent supplies",
+    "Outdoor route has no page errors"
+  ],
+  "errors": []
+}

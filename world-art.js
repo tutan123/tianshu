@@ -84,7 +84,7 @@ globalThis.WorldArt = (() => {
         if(i<2){for(const dx of[-4,1])for(const dz of[-1.5,1.5]){asset(root,'desk',cx+dx,.2,cz+dz,1);asset(root,'chairDesk',cx+dx,.2,cz+dz+1,1);colliders.push({x:cx+dx,z:cz+dz,w:1.1,d:.65});}box(root,5,1.5,.14,'#3a6d63',cx,1.8,-13.7);}
         else{asset(root,'bookcaseOpen',cx-4,.2,cz+3,2.6);asset(root,'loungeSofa',cx+1,.2,cz+2,1.2);}
       }else if(r.style==='lab'||r.style==='shop'){
-        for(const x of[cx-4,cx+1]){asset(root,'desk',x,.2,cz,1.2);asset(root,'laptop',x,1.4,cz,.5);}
+        for(const x of[cx-4,cx+1]){asset(root,'desk',x,.2,cz,1.2);asset(root,'laptop',x,1.4,cz,.5);colliders.push({x,z:cz,w:1.25,d:.8});}
         for(let k=0;k<3;k++){box(root,1.1,2.4,.9,'#4b6278',cx-4+k*1.4,1.4,cz-3.5);for(let j=0;j<5;j++)box(root,.7,.08,.03,j%2?'#81cdbe':'#8eacd8',cx-4+k*1.4,.7+j*.3,cz-3);}
       }else if(r.style==='gym'){
         for(let k=0;k<4;k++){box(root,1.3,2.3,.7,k%2?'#738c99':'#b18a76',cx-5+k*1.5,1.35,cz-3.5);box(root,.08,.45,.1,'#e4decf',cx-4.6+k*1.5,1.4,cz-3.1);}
@@ -118,6 +118,10 @@ globalThis.WorldArt = (() => {
     box(root,17,.4,67,'#70895d',-49.5,-.06,0);
     box(root,14,1.2,18,'#7d9576',-49,.5,-25);
     box(root,14,.16,18,'#a2af7b',-49,1.2,-25);
+    colliders.push(
+      {x:-52.9,z:-16.1,w:3.2,d:.5},{x:-44.1,z:-16.1,w:2.2,d:.5},
+      {x:-42,z:-25,w:.5,d:9.4},{x:-56.2,z:-25,w:.4,d:9.4},{x:-49,z:-34.2,w:7.4,d:.4}
+    );
     for(let i=0;i<5;i++)box(root,3.2,.25*(i+1),.85,'#abb7a9',-48,.125*(i+1),-13.5-i*.75);
     box(root,15,.08,2,'#b2b297',-48,.14,-8);
     for(let i=0;i<20;i++){const z=-11+i*2.3,x=-48+Math.sin(i*.55)*2;box(root,2.4,.06,2.5,'#aeb599',x,.17,z);}

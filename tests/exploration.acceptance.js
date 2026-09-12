@@ -36,6 +36,12 @@ async (browserPage) => {
     const bounds=await p.evaluate(()=>{const a=document.querySelector('.direction-pad').getBoundingClientRect(),b=document.querySelector('#world-interact').getBoundingClientRect();return {separate:a.right<=b.left,overflow:document.documentElement.scrollWidth>innerWidth};});
     assert(bounds.separate&&!bounds.overflow,'Mobile controls do not overlap or overflow');
     await p.locator('#floor-map').click();await p.waitForTimeout(700);await shot('exploration-mobile-floor');
+    const floorFramed=await p.evaluate(()=>{
+      const info=Campus3D.inspect(),camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.2,600);camera.position.fromArray(info.camera);camera.lookAt(0,0,0);camera.updateMatrixWorld();
+      return [[-18,-14],[18,-14],[-18,14],[18,14]].every(([x,z])=>Math.abs(new THREE.Vector3(x,0,z).project(camera).x)<.96);
+    });
+    assert(floorFramed,'Entire indoor floor fits a narrow mobile viewport');
+    assert(await p.evaluate(()=>!Campus3D.clearAt(-13,8)),'Laboratory workbench blocks walking through it');
     await p.reload();assert((await current()).rpg.world.claimed&&(await current()).rpg.world.opened.includes('lab-cache'),'Reload preserves quest, stamps, switch and chest');
     assert(errors.length===0,'No uncaught errors during exploration');
     return {success:true,testedAt:new Date().toISOString(),checks,errors};

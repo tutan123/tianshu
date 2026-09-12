@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "testedAt": "2026-09-12T14:36:38.498Z",
+  "checks": [
+    "Shop charges exact equipment price",
+    "Owned gear cannot be bought twice",
+    "Purchased gear automatically equips empty slot",
+    "Equipment can be removed",
+    "Memory replay payment survives reload",
+    "Paid replay cannot be charged twice",
+    "Three memory rounds complete through signal buttons",
+    "Result explains first-win reward",
+    "Hook encounter resumes after reload",
+    "Expired salvage returns a valid story result",
+    "Returning hook reaches winning result and awards first-win currency",
+    "Reloading winning result does not duplicate reward",
+    "New games have no uncaught page errors"
+  ],
+  "errors": []
+}

@@ -122,7 +122,10 @@ globalThis.Arcade = (() => {
   function finish(result) { if (stopped) return; stopped = true; hooks.finish(result); }
   function tick(dt) {
     if (stopped || !g) return;
-    if (g.kind === 'salvage' && globalThis.Matter) { const result = step(g, dt, RPG.bonus(state), bodies); draw(); if (result) finish(result); }
+    if (g.kind === 'salvage') {
+      if (globalThis.Matter) { const result = step(g, dt, RPG.bonus(state), bodies); draw(); if (result) finish(result); }
+      return;
+    }
     if (g.kind === 'memory' && g.phase === 'show') {
       g.timer += dt; const index = Math.floor(g.timer / .85), on = g.timer % .85 < .55;
       host.querySelectorAll('[data-signal]').forEach(b => b.classList.toggle('lit', on && Number(b.dataset.signal) === sequences[g.round][index]));

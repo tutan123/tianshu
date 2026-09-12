@@ -17,7 +17,17 @@ async(browserPage)=>{
     await p.reload();assert((await s()).active.game.kind==='salvage','Hook encounter resumes after reload');await p.setViewportSize({width:1440,height:960});await shot('salvage-desktop');
     // Advance the real simulation clock to cover its terminal cleanup deterministically.
     await p.evaluate(()=>{for(let i=0;i<7000&&document.querySelector('#salvage-board');i++)MiniGames.tick(.016);});
-    assert((await s()).active.phase==='result','Expired salvage returns a valid story result');assert(errors.length===0,'New games have no uncaught page errors');
+    assert((await s()).active.phase==='result','Expired salvage returns a valid story result');
+    const winning=await p.evaluate(()=>{
+      const state=JSON.parse(localStorage.getItem('tianshu-v3-auto'));
+      const game=Arcade.create('salvage');Object.assign(game,{phase:'back',score:230,length:30,caught:0});
+      state.active={id:'salvage',phase:'inter',shot:1,game};return state;
+    });
+    await p.addInitScript(seed=>{if(!sessionStorage.getItem('arcade-winner-seeded')){localStorage.setItem('tianshu-v3-auto',JSON.stringify(seed));sessionStorage.setItem('arcade-winner-seeded','1');}},winning);
+    await p.reload();await p.waitForFunction(()=>!!document.querySelector('#back-campus'));
+    assert((await s()).rpg.records.salvage.won&&(await s()).stats.cash===winning.stats.cash+180,'Returning hook reaches winning result and awards first-win currency');
+    await p.reload();assert((await s()).stats.cash===winning.stats.cash+180,'Reloading winning result does not duplicate reward');
+    assert(errors.length===0,'New games have no uncaught page errors');
     return {success:true,testedAt:new Date().toISOString(),checks,errors};
   }catch(e){await shot('arcade-failure');return {success:false,checks,errors,error:e.stack};}finally{await c.close();}
 }

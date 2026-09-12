@@ -183,7 +183,8 @@ globalThis.Campus3D = (() => {
     document.body.classList.remove('inside');hooks.zone?.(null);hooks.object?.(null);return true;
   }
   function interact() { if(active&&mode==='walk'&&nearestObject)hooks.interact?.(nearestObject); }
-  function survey() { surveying=!surveying;radius=surveying?(zone?(host.clientWidth<800?90:62):(host.clientWidth<800?225:112)):(zone?31:27);pitch=surveying?1.18:(zone?1.03:.88);yaw=0; }
+  function surveyRadius() { return zone ? Math.max(62,42/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect)) : (host.clientWidth<800?225:112); }
+  function survey() { surveying=!surveying;radius=surveying?surveyRadius():(zone?31:27);pitch=surveying?1.18:(zone?1.03:.88);yaw=0; }
   function setMode(next, place = currentPlace) {
     if(zone)exitInterior();surveying=false;
     if (!ready || !entries[place] || !['walk', 'overview'].includes(next)) return; mode = next; pressed.clear(); travel = null; ringTarget.visible = false; near = null; currentPlace = place;
@@ -218,8 +219,9 @@ globalThis.Campus3D = (() => {
       }
     }
     if(!found)return false;const path=[];for(let p=found;p;p=came.get(key(...p)))path.push(new THREE.Vector3(p[0],0,p[1]));path.reverse();path.shift();path.push(new THREE.Vector3(x,0,z));
-    route=path;travel=route.shift();ringTarget.position.set(x,.23,z);ringTarget.visible=true;return true;
+    route=path;travel=route.shift();ringTarget.position.set(x,groundHeight(x,z)+.02,z);ringTarget.visible=true;return true;
   }
+  function groundHeight(x,z) { return zone ? .22 : Math.abs(z-17)<1.1&&x>-36&&x<-14 ? .73 : WorldArt.height(x,z); }
   function wire() {
     const canvas = renderer.domElement;
     canvas.addEventListener('pointerdown', e => { pointer = { x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); });
@@ -238,6 +240,7 @@ globalThis.Campus3D = (() => {
   }
   function resize() {
     if (!ready) return; const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+    if(surveying)radius=surveyRadius();
     const frame = document.getElementById('mini-frame')?.getBoundingClientRect(), bounds = host.getBoundingClientRect();
     miniRect = frame && frame.width ? { x: frame.left - bounds.left + 2, y: h - (frame.bottom - bounds.top) + 2, width: frame.width - 4, height: frame.height - 4 } : { x: w - 218, y: h - 320, width: 188, height: 140 };
   }
@@ -247,7 +250,7 @@ globalThis.Campus3D = (() => {
     else if (travel) { dx = travel.x - player.group.position.x; dz = travel.z - player.group.position.z; if (Math.hypot(dx, dz) < .08) { player.group.position.x=travel.x;player.group.position.z=travel.z;travel = route.shift()||null; ringTarget.visible = !!travel; dx = dz = 0; } }
     const length = Math.hypot(dx, dz);
     if (length > 0) { const speed=travel?Math.min(length,dt*6):dt*6;dx = dx / length * speed; dz = dz / length * speed; const p = player.group.position; let moved = false; if (clearAt(p.x + dx, p.z)) { p.x += dx; moved = true; } if (clearAt(p.x, p.z + dz)) { p.z += dz; moved = true; } if (!moved && travel) { travel = null;route=[]; ringTarget.visible = false; } player.group.rotation.y = Math.atan2(dx, dz); player.left.rotation.x = Math.sin(elapsed * 13) * .45; player.right.rotation.x = -player.left.rotation.x; } else player.left.rotation.x = player.right.rotation.x = 0;
-    const pos = player.group.position; pos.y = zone?.22:Math.abs(pos.z - 17) < 1.1 && pos.x > -36 && pos.x < -14 ? .73 : WorldArt.height(pos.x,pos.z);
+    const pos = player.group.position; pos.y = groundHeight(pos.x,pos.z);
     desiredTarget.copy(player.group.position); const n = zone ? null : Object.entries(entries).filter(([id, e]) => Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) < 3.3).sort((a, b) => Math.hypot(player.group.position.x - a[1][0], player.group.position.z - a[1][1]) - Math.hypot(player.group.position.x - b[1][0], player.group.position.z - b[1][1]))[0]?.[0] || null;
     if (n !== near) { near = n; hooks.near?.(n); }
     const obj=worldObjects().filter(o=>Math.hypot(pos.x-o.x,pos.z-o.z)<2.9).sort((a,b)=>Math.hypot(pos.x-a.x,pos.z-a.z)-Math.hypot(pos.x-b.x,pos.z-b.z))[0]||null;
@@ -256,6 +259,7 @@ globalThis.Campus3D = (() => {
   function preview(place) {
     if (!ready || !coords[place]) return '';
     if (previews[place]) return previews[place];
+    if(zone)return '';
     const oldPosition = camera.position.clone(), oldRotation = camera.quaternion.clone(), oldAspect = camera.aspect;
     const [x, z] = coords[place], w = Math.min(host.clientWidth, 600), h = w / 2, d = renderer.getPixelRatio();
     camera.position.set(x + 13, 12, z + 19); camera.lookAt(x, 3, z); camera.aspect = 2; camera.updateProjectionMatrix();
