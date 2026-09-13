@@ -15,6 +15,7 @@
 - 8 处可进入的室内区域，共 32 个连通房间：宿舍、教学楼、图书馆、船屋、运动馆、实验楼、维修铺、学生会馆。
 - 宿舍附楼和维修铺东间也可进入，目前复用对应区域的室内。
 - NPC 对话、电脑终端、便签、宝箱、八枚校史印章与实验楼供电机关。
+- 八处室内各有一条现场调查线：先与当地 NPC 交谈，再找到线索便签，然后回答一个推理问题，最后回去交付。答错不会卡住，可以继续尝试；报酬只发一次。
 - 集齐印章后在学生会馆交付任务，获得专注吊坠；实验楼电子箱需先开启配电开关。
 - 8 级成长、3 个装备槽、6 件装备、2 种消耗品，以及独立的天枢模块成长。
 - 6 类小游戏：认知问答、精准时机、线路取证、战术对决、零件回收、信号复原。
@@ -26,10 +27,18 @@
 
 ## 验证
 
-单元测试：
+一条命令跑完全部验证（单元测试 + 全部浏览器验收，文件自动发现，不需要手动维护清单）：
 
 ```powershell
-node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cjs tests/architecture.test.cjs
+verify.cmd              # 或： npm run verify
+verify.cmd --unit       # 只跑单元测试，不需要 playwright
+verify.cmd --browser    # 只跑浏览器验收
+```
+
+运行游戏本身**不需要任何安装**。浏览器验收需要一次性安装 `playwright-core`，它复用本机已装的 Chrome，不会下载额外的浏览器：
+
+```powershell
+npm install
 ```
 
 浏览器验收使用独立上下文，不覆盖玩家存档：
@@ -39,14 +48,23 @@ node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cj
 - `tests/arcade.acceptance.js`：购买与换装、三轮信号操作、付费重放恢复、回收进度恢复、胜负结算及防止重复领奖。
 - `tests/outdoor.acceptance.js`：附楼入口、林间台阶与台地宝箱、悬崖阻挡、林间 NPC 和隐藏补给。
 - `tests/architecture.acceptance.js`：建筑差异、入口、角色遮挡、昼夜雨景、桌面与手机画面、主视图和小地图像素、离线资源检查。
+- `tests/rpg-interface.acceptance.js`：角色/装备/背包/任务四个视图、装备对比、消耗品预览与实际效果、移动端 320/390 布局。
 
-这些文件提供接收 Playwright Page 的验收函数。结果见 `tests/browser-results-v3.1.json`、`tests/exploration-results.json`、`tests/arcade-results.json`、`tests/outdoor-results.json`。本机截图保存在 `tests/screenshots/`，不纳入 Git。
+这些文件提供接收 Playwright Page 的验收函数，结果写入同名的 `tests/*-results.json`。本机截图保存在 `tests/screenshots/`，不纳入 Git。
 
-2026-09-12 上一版验证通过：19 项单元测试、63 项室内探索检查、13 项小游戏检查、14 项户外检查。原首章的 54 项浏览器验收记录保留在 `browser-results-v3.1.json`。
+另有独立健康探针，报告实测数字而非断言：
 
-2026-09-13 建筑精修验证通过：23 项单元测试、39 项建筑画面与入口检查，以及重新执行的 63 项室内、14 项户外检查。新增记录见 `tests/architecture-results.json`。
+```powershell
+npm run probe     # 启动耗时、帧率、8 处室内全部互动点可达性、布局溢出、主画布像素
+```
 
-`tests/run-browser.cjs` 可通过独立 Chrome 运行这些验收函数，需要本机 Node 能解析 `playwright` 包。例如：`node tests/run-browser.cjs tests/architecture.acceptance.js`。运行游戏本身不依赖 Playwright。
+### 验证记录
+
+- 2026-09-12：19 项单元测试、63 项室内探索检查、13 项小游戏检查、14 项户外检查。
+- 2026-09-13 建筑精修：23 项单元测试、39 项建筑画面与入口检查。
+- 2026-09-13 v3.3 集成（DeepSeek Agent）：**35 项单元测试、6 套浏览器验收共 213 项检查全部通过**；探针 13/13、启动 663 ms、步行 110 fps。同日修复了三处此前从未真正运行过的验收入口（`.mjs` 运行器、`[role=status]` 选择器），并补齐 `characters.js` / `interiors.js` / `character-ui.css` 的接入。
+
+`tests/run-browser.cjs` 可通过独立 Chrome 运行单套验收，例如 `node tests/run-browser.cjs tests/architecture.acceptance.js`。它同时支持 `async (page) => {}` 形式的 `.js` 套件和 ES Module 形式的 `.mjs` 套件。
 
 ## 设计和素材
 
@@ -56,7 +74,7 @@ node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cj
 
 钟楼是本项目在 Blender 中制作的原创模型。23 个家具与自然模型来自 Kenney 的 CC0 素材，经 Blender 5.2 转换为可离线载入的网格；来源和许可证见 [素材来源](assets/SOURCES.md)。仓库不包含下载压缩包和原始 Models 目录，运行游戏使用 `assets/kenney-meshes.js`；重新转换需先取得原素材。
 
-当前八处室内共用四房间基础平面，并按区域配置家具、人物与互动内容。主角和 NPC 仍是低多边形原型角色，部分剧情影像沿用旧版占位素材。更多卡牌、NPC 日程和伙伴同行属于后续设计，尚未实现。
+当前八处室内各自使用独立平面（双侧寝室走廊、阶梯讲堂、环形书廊、修船坞、开放球场、L 形实验动线、U 形维修台、隔音演播室），并按区域配置家具、人物与互动内容。主角与 13 位具名角色由 `characters.js` 的程序化角色工厂生成，仍是低多边形风格，部分剧情影像沿用旧版占位素材。更多卡牌、NPC 日程和伙伴同行属于后续设计，尚未实现。
 
 刷新后返回校园总览，不恢复行走坐标。休息目前可重复恢复算力，尚未加入正式版时间成本。
 
@@ -65,11 +83,15 @@ node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cj
 | 文件 | 职责 |
 | --- | --- |
 | `content.js` / `state.js` | 剧情数据、推进与存档验证 |
-| `rpg.js` / `growth-ui.js` | 成长、装备、物品与商店 |
-| `exploration.js` | 区域、互动、任务与一次性奖励 |
-| `world-art.js` | 房间、环境陈设与离线模型 |
+| `rpg.js` / `growth-ui.js` / `character-ui.css` | 成长、装备、物品、商店与角色档案界面 |
+| `characters.js` | 程序化角色工厂：13 位具名角色的外形、装备外观与头像渲染 |
+| `exploration.js` | 区域、互动、现场推理、调查任务与一次性奖励 |
+| `interiors.js` | 八套室内平面（导航坐标与几何出自同一份数据） |
+| `world-art.js` | 环境陈设、离线模型实例化与互动物外观 |
 | `campus-buildings.js` | 八类原创建筑、程序纹理与构件合批 |
 | `campus3d.js` | 渲染、相机、路径、碰撞和室内外切换 |
 | `game.js` | 演出、对话、界面与保存 |
 | `minigames.js` / `salvage.js` | 六类挑战 |
+| `tests/verify.cjs` / `verify.cmd` | 一键验证入口：自动发现并运行全部测试与验收 |
+| `tests/agent.probe.cjs` | 实机健康探针（耗时、帧率、可达性、溢出、像素） |
 | `assets/` / `vendor/` | 模型、影像、许可证与运行库 |

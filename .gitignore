@@ -1,4 +1,4 @@
-# Downloaded source archives; runtime uses the converted offline mesh.
+﻿# Downloaded source archives; runtime uses the converted offline mesh.
 assets/kenney-furniture.zip
 assets/kenney-nature.zip
 assets/kenney-furniture/Models/
@@ -10,4 +10,3 @@ tests/screenshots/
 
 # Verification-only dependencies. The game itself needs no install (file:// static page).
 node_modules/
-package-lock.json
