@@ -18,11 +18,17 @@
   }
   function nearPlace(place) {
     const id = TS.available(state).find(n => CONTENT.nodes[n].place === place);
+    // Hide rather than disable. On a phone the walk controls already stack three
+    // buttons plus the direction pad over the scene, and a greyed-out placeholder
+    // carrying no information was a third of that stack.
     $('near-interact').disabled = !id;
+    $('near-interact').hidden = !id;
     $('near-interact').querySelector('span').textContent = id ? CONTENT.nodes[id].title : '暂无附近事件';
     $('near-interact').dataset.node = id || '';
     const found = RPG.ensure(state).found.includes(place);
-    $('near-discover').disabled = !place || found;
+    const discover = !!place && !found;
+    $('near-discover').disabled = !discover;
+    $('near-discover').hidden = !discover;
     $('near-discover').dataset.place = place || '';
     $('near-discover').querySelector('span').textContent = found ? '记忆已归档' : place ? '调查 · ' + CONTENT.places[place].name : '调查附近';
   }
@@ -30,7 +36,10 @@
     if (mapReady()) Campus3D.update({ available: TS.available(state), selected: selectedPlace, night: state.time === '夜晚', motion: state.settings.motion, exploration: Exploration.ensure(state), equipped: RPG.ensure(state).equipped });
   }
   function objectNear(o) {
+    // Same reason as nearPlace: an unusable button labelled "附近没有可互动对象" is
+    // noise on a phone, so nothing nearby means no button.
     $('world-interact').disabled=!o;
+    $('world-interact').hidden=!o;
     $('world-interact').querySelector('span').textContent=o?o.name:'附近没有可互动对象';
   }
   function closeWorldDialog() { $('world-dialog').close(); Campus3D.setActive(!state.active); }

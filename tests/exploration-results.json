@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-13T07:54:01.908Z",
+  "testedAt": "2026-09-13T07:56:58.760Z",
   "checks": [
     "Reachable path: dorm-door",
     "Door enters dorm",
