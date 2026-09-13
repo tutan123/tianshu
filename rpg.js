@@ -30,6 +30,37 @@ globalThis.RPG = (() => {
     for (const id of Object.values(ensure(s).equipped)) for (const [key, value] of Object.entries(items[id]?.bonus || {})) out[key] += value;
     return out;
   }
+  function profile(s) {
+    const r = ensure(s), lv = level(s), bonuses = bonus(s);
+    const maxHp = 65 + Math.floor(s.stats.physique / 2) + bonuses.hp;
+    const combat = s.active?.game?.kind === 'combat' ? s.active.game : null;
+    return { level: lv, xp: r.xp, progress: lv === 8 ? 100 : r.xp % 100, stats: { ...s.stats }, bonus: bonuses, maxHp: combat?.maxHp ?? maxHp, hp: combat?.hp ?? maxHp };
+  }
+  function inventory(s, category = 'all', query = '') {
+    const r = ensure(s);
+    const entries = r.owned.map(id => ({ ...items[id], id, category: 'gear', quantity: 1, equipped: r.equipped[items[id].slot] === id }));
+    for (const [id, quantity] of Object.entries(r.bag)) if (quantity > 0) entries.push({ ...items[id], id, category: 'supplies', quantity });
+    for (const place of r.found) entries.push({ ...finds[place], id: 'memory:' + place, desc: finds[place].text, category: 'memories', quantity: 1 });
+    for (const item of globalThis.Exploration?.evidence?.(s) || []) entries.push({ ...item, id: 'evidence:' + item.id, category: 'evidence', quantity: 1 });
+    const text = query.trim().toLocaleLowerCase();
+    return entries.filter(item => (category === 'all' || item.category === category) && (!text || (item.name + ' ' + item.desc).toLocaleLowerCase().includes(text)));
+  }
+  function compare(s, id) {
+    const item = items[id];
+    if (!item?.slot) return null;
+    const current = ensure(s).equipped[item.slot], before = items[current]?.bonus || {}, after = item.bonus || {};
+    const delta = {};
+    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) delta[key] = (after[key] || 0) - (before[key] || 0);
+    return { current, delta };
+  }
+  function usePreview(s, id) {
+    const r = ensure(s), item = items[id];
+    if (!item || item.slot) return { allowed: false, reason: '此物品无法消耗', compute: 0, xp: 0 };
+    const compute = item.compute ? Math.min(item.compute, s.stats.maxCompute - s.stats.compute) : 0;
+    const gain = item.xp ? Math.min(item.xp, 700 - r.xp) : 0;
+    const reason = s.active ? '剧情进行中，暂时无法使用' : !r.bag[id] ? '物品已用完' : item.compute && !compute ? '算力已满' : item.xp && !gain ? '首章经验已满' : '';
+    return { allowed: !reason, reason, compute, xp: gain };
+  }
   function buy(s, id) {
     const item = items[id], r = ensure(s);
     if (!item || s.active || s.stats.cash < item.price || item.slot && r.owned.includes(id) || !item.slot && r.bag[id] >= 9) return false;
@@ -68,5 +99,5 @@ globalThis.RPG = (() => {
     if (globalThis.Exploration) { r.world = Exploration.validate(r.world); if (!r.world) return null; }
     return r;
   }
-  return { items, finds, slots, fresh, ensure, level, xp, bonus, buy, equip, use, discover, reward, validate };
+  return { items, finds, slots, fresh, ensure, level, xp, bonus, profile, inventory, compare, usePreview, buy, equip, use, discover, reward, validate };
 })();
