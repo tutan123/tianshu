@@ -151,7 +151,7 @@
   }
   function setMedia(media, position) {
     const token = ++mediaToken, video = $('scene-video'); video.pause(); video.classList.remove('ready'); $('media-note').hidden = true;
-    $('scene-image').style.backgroundImage = `url('assets/${['rain', 'awake', 'library', 'linwan'].includes(media) ? media + '.jpg' : 'campus.png'}')`;
+    $('scene-image').style.backgroundImage = `url('assets/${['rain', 'awake', 'library', 'linwan'].includes(media) ? media + '.jpg' : 'campus.webp'}')`;
     $('scene-image').style.backgroundPosition = position || '50% 50%';
     if (media === 'campus') { video.removeAttribute('src'); video.load(); return; }
     video.src = `assets/video/${media}.mp4`; video.muted = true;
