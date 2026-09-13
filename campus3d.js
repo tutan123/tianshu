@@ -31,7 +31,7 @@ globalThis.Campus3D = (() => {
     return result.root;
   }
   const occluderRay = new THREE.Raycaster();
-  let occlusionFrame = 0;
+  let occlusionFrame = 0, pinNodes = null;
   function updateOcclusion() {
     // Precise mesh raycasts are not free, and occlusion changes slowly, so re-test
     // every few frames instead of every frame.
@@ -337,10 +337,16 @@ globalThis.Campus3D = (() => {
     const w = host.clientWidth, h = host.clientHeight; renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); renderer.render(scene, camera);
     applyOcclusion(false);
     if (mode === 'walk') { const r = miniRect; renderer.setScissorTest(true); renderer.setScissor(r.x, r.y, r.width, r.height); renderer.setViewport(r.x, r.y, r.width, r.height); player.group.scale.setScalar(3); renderer.render(scene, miniCamera); player.group.scale.setScalar(1); renderer.setScissorTest(false); }
-    for (const b of document.querySelectorAll('#pins-3d [data-place]')) {
-      const id = b.dataset.place, e = entries[id], p = new THREE.Vector3(e[0], mode === 'walk' ? 2.8 : 2, e[1]); p.project(camera);
-      b.style.left = `${(p.x * .5 + .5) * w}px`; b.style.top = `${(-p.y * .5 + .5) * h}px`; b.hidden = !!zone || p.z > 1 || p.x < -.95 || p.x > .95 || p.y < -.95 || p.y > .9 || mode === 'walk' && Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) > 22;
+    // Pin nodes are re-queried only when the map is rebuilt. Querying the DOM every
+    // frame forced a style recalculation for eight elements per frame for nothing.
+    if (!pinNodes) pinNodes = [...document.querySelectorAll('#pins-3d [data-place]')];
+    const pin = new THREE.Vector3();
+    for (const b of pinNodes) {
+      const id = b.dataset.place, e = entries[id];
+      if (!e) continue;
+      pin.set(e[0], mode === 'walk' ? 2.8 : 2, e[1]).project(camera);
+      b.style.left = `${(pin.x * .5 + .5) * w}px`; b.style.top = `${(-pin.y * .5 + .5) * h}px`; b.hidden = !!zone || pin.z > 1 || pin.x < -.95 || pin.x > .95 || pin.y < -.95 || pin.y > .9 || mode === 'walk' && Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) > 22;
     }
   }
-  return { init, update, preview, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())), reset: () => zone?enterInterior(zone):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), target: target?.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, architecture: campusRoot?.children.filter(o=>o.name.startsWith('Architecture_')).map(o=>({...o.userData,batches:o.children.length})), render: {...renderer?.info.render}, waterHeight: water?.position.y, fog: {near:scene?.fog.near,far:scene?.fog.far}, occluded: architectureVisuals.filter(o=>o.faded).map(o=>o.root.name), frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
+  return { init, update, preview, refreshPins: () => { pinNodes = null; }, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())), reset: () => zone?enterInterior(zone):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), target: target?.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, architecture: campusRoot?.children.filter(o=>o.name.startsWith('Architecture_')).map(o=>({...o.userData,batches:o.children.length})), render: {...renderer?.info.render}, waterHeight: water?.position.y, fog: {near:scene?.fog.near,far:scene?.fog.far}, occluded: architectureVisuals.filter(o=>o.faded).map(o=>o.root.name), frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
 })();

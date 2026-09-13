@@ -114,6 +114,7 @@
       return `<button class="pin ${isMain ? 'main' : events.length ? 'side' : ''} ${selectedPlace === id ? 'selected' : ''}" data-place="${id}" style="left:${p.x}%;top:${p.y}%" aria-label="${p.name}${isMain ? ' · 主线可进入' : events.length ? ' · 支线可进入' : ''}"><span class="pin-mark">${icon(p.icon)}</span><span class="pin-name">${p.name}</span>${events.length ? `<span class="pin-flag">${isMain ? '!' : '?'}</span>` : ''}</button>`;
     }).join('');
     pinHost.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => { selectedPlace = b.dataset.place; selectedEvent = null; sound(); renderMap(); }));
+    window.Campus3D?.refreshPins?.();
     $('event-list').querySelectorAll('[data-event]').forEach(b => b.addEventListener('click', () => selectEvent(b.dataset.event)));
     renderLocation(); fitMap(); icons();
     syncMap();
@@ -359,7 +360,10 @@
         if (textIndex < sh.text.length) { textElapsed += dt * 1000; const step = state.settings.speed ? Math.floor(textElapsed / state.settings.speed) : sh.text.length; if (step) { textElapsed = 0; textIndex = Math.min(sh.text.length, textIndex + step); $('subtitle').textContent = sh.text.slice(0, textIndex); } }
         else if (state.settings.auto) { autoElapsed += dt; if (autoElapsed >= Math.max(3.5, sh.text.length * .085)) nextLine(); }
       } else if (state.active.phase === 'inter') MiniGames.tick(dt);
-      saveElapsed += dt; if (saveElapsed >= 2) { saveElapsed = 0; save(); }
+      // Key moments (entering a scene, advancing a shot, finishing a choice) already
+      // save explicitly, so this periodic write is only a safety net. Every two
+      // seconds it re-serialised the whole state, history included, for no gain.
+      saveElapsed += dt; if (saveElapsed >= 8) { saveElapsed = 0; save(); }
     }
     requestAnimationFrame(frame);
   }
