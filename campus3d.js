@@ -71,6 +71,22 @@ globalThis.Campus3D = (() => {
     if (isPlayer) { box(.42, .48, .2, mat('#575746'), 0, 1.06, -.26, g); const r = mesh(new THREE.RingGeometry(.6, .72, 28), new THREE.MeshBasicMaterial({ color: '#d9f4a4', transparent: true, opacity: .9, side: THREE.DoubleSide }), 0, .08, 0, g); r.rotation.x = -Math.PI / 2; }
     return { group: g, left, right };
   }
+  // Original low-poly cast figures when characters.js is present; the procedural
+  // figure above stays as the fallback so the campus still runs without it.
+  function characterActor(id, options = {}) {
+    const actor = globalThis.Characters?.create(id, options);
+    if (!actor) return null;
+    scene.add(actor.group);
+    return actor;
+  }
+  function playerFigure(x, z) {
+    const actor = characterActor('chenxu', { player: true });
+    if (!actor) return person(x, z, '#5078a5', true);
+    actor.group.position.set(x, 0, z);
+    const r = mesh(new THREE.RingGeometry(.6, .72, 28), new THREE.MeshBasicMaterial({ color: '#d9f4a4', transparent: true, opacity: .9, side: THREE.DoubleSide }), 0, .08, 0, actor.group);
+    r.rotation.x = -Math.PI / 2;
+    return actor;
+  }
   function line(points, color = '#ece6cb') {
     const geo = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(...p)));
     const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color })); scene.add(l); return l;
@@ -108,7 +124,7 @@ globalThis.Campus3D = (() => {
     for (let z = -29; z < 34; z += 10) { lamp(-4.5, z); lamp(5, z); }
     for (const [x, z] of [[-6, 7], [7, 7], [-16, 11], [-14, 22], [16, -10]]) bench(x, z, x < -10 ? Math.PI / 2 : 0);
     for (let i = 0; i < 20; i++) { const p = person(i % 2 ? -2 : 2, -30 + i * 3.1, ['#bd9a72', '#7898a2', '#c4b2a1', '#a78287'][i % 4]); p.origin = p.group.position.clone(); p.speed = .25 + i % 3 * .1; people.push(p); }
-    player = person(-22, -3, '#5078a5', true);
+    player = playerFigure(-22, -3);
     ringTarget = mesh(new THREE.RingGeometry(.65, .72, 28), new THREE.MeshBasicMaterial({ color: '#d5efb0', transparent: true, opacity: .8, side: THREE.DoubleSide }), 0, .12, 0); ringTarget.rotation.x = -Math.PI / 2; ringTarget.visible = false;
     for (const [id, [x, z]] of Object.entries(entries)) {
       const marker = mesh(new THREE.RingGeometry(1.1, 1.35, 32), new THREE.MeshBasicMaterial({ color: '#d3e7a4', transparent: true, opacity: .9, side: THREE.DoubleSide, depthWrite: false }), x, .18, z); marker.rotation.x = -Math.PI / 2; markers[id] = marker;
@@ -138,7 +154,7 @@ globalThis.Campus3D = (() => {
       player.group.visible = false; wire(); ready = true; resize(); setWeather('auto'); requestAnimationFrame(frame); return true;
     } catch (err) { renderer?.dispose(); renderer?.domElement.remove(); hooks.error?.(err); return false; }
   }
-  function update(data) { worldState = { ...worldState, ...data }; if (worldNight !== worldState.night && weather === 'auto') setWeather('auto'); for (const [id, marker] of Object.entries(markers)) marker.visible = worldState.available.some(n => CONTENT.nodes[n].place === id); WorldArt.refresh(outsideVisuals,worldState.exploration);if(indoor)WorldArt.refresh(indoor.visuals,worldState.exploration); }
+  function update(data) { worldState = { ...worldState, ...data }; if (worldNight !== worldState.night && weather === 'auto') setWeather('auto'); for (const [id, marker] of Object.entries(markers)) marker.visible = worldState.available.some(n => CONTENT.nodes[n].place === id); if (data.equipped && player?.gear) globalThis.Characters?.updateEquipment(player, data.equipped); WorldArt.refresh(outsideVisuals,worldState.exploration);if(indoor)WorldArt.refresh(indoor.visuals,worldState.exploration); }
   function setWeather(value) {
     if (!ready) return; weather = value; worldNight = worldState.night; for (const key of Object.keys(previews)) delete previews[key];
     const night = value === 'night' || value === 'rain' || value === 'auto' && worldNight, wet = value === 'rain' || value === 'auto' && worldNight;
@@ -147,11 +163,16 @@ globalThis.Campus3D = (() => {
     rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 3 : .2; for (const m of windowMaterials) m.emissiveIntensity = night ? .24 : 0;
     water.material.roughness = wet ? .12 : .25; hooks.weather?.(night, wet); return { night, wet };
   }
+  function buildInterior(id) {
+    try { const built = globalThis.Interiors?.build?.(id); if (built?.root) return built; }
+    catch (err) { hooks?.error?.(err); }
+    return WorldArt.interior(id);
+  }
   function enterInterior(id) {
     if(!ready||!Exploration.regions[id]||mode!=='walk')return false;
     if(!zone)returnPoint=player.group.position.clone();
     if(indoor)indoor.root.visible=false;
-    surveying=false;zone=id; currentPlace=id; indoor=interiors[id] ||= WorldArt.interior(id);scene.add(indoor.root);indoor.root.visible=true;campusRoot.visible=false;colliders=indoor.colliders;
+    surveying=false;zone=id; currentPlace=id; indoor=interiors[id] ||= buildInterior(id);scene.add(indoor.root);indoor.root.visible=true;campusRoot.visible=false;colliders=indoor.colliders;
     player.group.position.set(0,.2,10.5);target.copy(player.group.position);desiredTarget.copy(target);radius=31;yaw=0;pitch=1.03;
     pressed.clear();travel=null;route=[];ringTarget.visible=false;nearestObject=null;near=null;hooks.near?.(null);hooks.object?.(null);
     miniCamera.left=-20;miniCamera.right=20;miniCamera.top=16;miniCamera.bottom=-16;miniCamera.updateProjectionMatrix();
@@ -206,7 +227,7 @@ globalThis.Campus3D = (() => {
     if(!found)return false;const path=[];for(let p=found;p;p=came.get(key(...p)))path.push(new THREE.Vector3(p[0],0,p[1]));path.reverse();path.shift();path.push(new THREE.Vector3(x,0,z));
     route=path;travel=route.shift();ringTarget.position.set(x,groundHeight(x,z)+.02,z);ringTarget.visible=true;return true;
   }
-  function groundHeight(x,z) { return zone ? .22 : Math.abs(z-17)<1.1&&x>-36&&x<-14 ? .73 : WorldArt.height(x,z); }
+  function groundHeight(x,z) { return zone ? (indoor?.height?.(x,z) ?? .22) : Math.abs(z-17)<1.1&&x>-36&&x<-14 ? .73 : WorldArt.height(x,z); }
   function wire() {
     const canvas = renderer.domElement;
     canvas.addEventListener('pointerdown', e => { pointer = { x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); });

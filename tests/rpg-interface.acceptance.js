@@ -45,7 +45,7 @@ async (browserPage) => {
     assert((await page.locator('.dossier-use-preview').innerText()).includes('5 算力'), 'Use preview reports clamped actual effect');
     await page.locator('[data-use=coffee]').click();
     assert((await state()).stats.compute === 100 && (await state()).rpg.bag.coffee === 0, 'Use updates capped resource and quantity once');
-    assert((await page.locator('[role=status]').innerText()).includes('恢复 5 算力'), 'Use effect remains visible after last item disappears');
+    assert((await page.locator('.dossier-status').innerText()).includes('恢复 5 算力'), 'Use effect remains visible after last item disappears');
     await page.locator('[data-bag-search]').fill('不存在');
     assert(await page.locator('[data-bag-item]').count() === 0, 'Search has a real empty result');
     await page.locator('[data-bag-search]').fill('');

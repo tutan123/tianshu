@@ -27,33 +27,40 @@
     $('near-discover').querySelector('span').textContent = found ? '记忆已归档' : place ? '调查 · ' + CONTENT.places[place].name : '调查附近';
   }
   function syncMap() {
-    if (mapReady()) Campus3D.update({ available: TS.available(state), selected: selectedPlace, night: state.time === '夜晚', motion: state.settings.motion, exploration: Exploration.ensure(state) });
+    if (mapReady()) Campus3D.update({ available: TS.available(state), selected: selectedPlace, night: state.time === '夜晚', motion: state.settings.motion, exploration: Exploration.ensure(state), equipped: RPG.ensure(state).equipped });
   }
   function objectNear(o) {
     $('world-interact').disabled=!o;
     $('world-interact').querySelector('span').textContent=o?o.name:'附近没有可互动对象';
   }
   function closeWorldDialog() { $('world-dialog').close(); Campus3D.setActive(!state.active); }
-  function worldInteract(o) {
+  function worldInteract(o, choice) {
     if(state.active)return;
     if(o.type==='door'){Campus3D.enterInterior(o.destination);return;}
     if(o.type==='exit'){Campus3D.exitInterior();return;}
-    const result=Exploration.act(state,o.id); save();hud(); if(result.reward)sound('win');else sound('soft');
+    const result=Exploration.act(state,o.id,choice); save();hud(); if(result.reward)sound('win');else sound('soft');
     $('world-dialog-title').textContent=o.name;
-    $('world-dialog-type').textContent={npc:'校园见闻 / 对话',quest:'校史寻踪 / 委托',chest:'行囊 / 探索发现',pc:'校园网络 / 终端',stamp:'校史寻踪 / 印章',switch:'实验楼 / 电力系统',note:'记忆碎片 / 调查'}[o.type]||'校园见闻';
+    $('world-dialog-type').textContent={npc:'校园见闻 / 对话',quest:'校史寻踪 / 委托',chest:'行囊 / 探索发现',pc:'校园网络 / 终端',stamp:'校史寻踪 / 印章',switch:'实验楼 / 电力系统',puzzle:'校园异常 / 现场推理',note:'记忆碎片 / 调查'}[o.type]||'校园见闻';
     $('world-dialog-text').textContent=result.text;
     const actions=$('world-dialog-actions');actions.replaceChildren();
     function action(text,fn,primary=false){const b=document.createElement('button');b.className=primary?'primary':'secondary';b.textContent=text;b.onclick=fn;actions.appendChild(b);}
-    const story=TS.available(state).find(id=>CONTENT.nodes[id].place===o.zone&&!CONTENT.nodes[id].repeatable);
-    if(o.type==='pc'){
-      const allowed=TS.available(state).includes(o.game);
-      $('world-dialog-text').textContent=allowed?(o.game==='salvage'?'回收机已启动。抓取高价值零件，别让废铁耗尽时间。首胜奖励 ¥180 与 60 EXP。':'终端正在重放一段破碎的记忆。依次复原三组信号，首胜奖励 ¥180 与 60 EXP。'):'终端等待天枢连接。先完成宿舍里的“命运重启”剧情，再来启动小游戏。';
-      if(allowed)action('开始 · '+CONTENT.nodes[o.game].title,()=>{closeWorldDialog();enter(o.game);},true);
-      if(o.zone==='gate')action('查看补给与装备',()=>{closeWorldDialog();openPanel('rpg');});
+    if(result.choices){
+      // Puzzles answer in place: the dialog stays open and re-renders with the verdict.
+      for(const c of result.choices)action(c.text,()=>worldInteract(o,c.id));
+    }else{
+      const story=TS.available(state).find(id=>CONTENT.nodes[id].place===o.zone&&!CONTENT.nodes[id].repeatable);
+      if(o.type==='pc'){
+        const allowed=TS.available(state).includes(o.game);
+        $('world-dialog-text').textContent=allowed?(o.game==='salvage'?'回收机已启动。抓取高价值零件，别让废铁耗尽时间。首胜奖励 ¥180 与 60 EXP。':'终端正在重放一段破碎的记忆。依次复原三组信号，首胜奖励 ¥180 与 60 EXP。'):'终端等待天枢连接。先完成宿舍里的“命运重启”剧情，再来启动小游戏。';
+        if(allowed)action('开始 · '+CONTENT.nodes[o.game].title,()=>{closeWorldDialog();enter(o.game);},true);
+        if(o.zone==='gate')action('查看补给与装备',()=>{closeWorldDialog();openPanel('rpg');});
+      }
+      if(o.type==='npc'&&story)action('谈谈 · '+CONTENT.nodes[story].title,()=>{closeWorldDialog();enter(story);},true);
+      action(result.reward?'收好，继续探索':'继续探索',closeWorldDialog,!actions.children.length);
     }
-    if(o.type==='npc'&&story)action('谈谈 · '+CONTENT.nodes[story].title,()=>{closeWorldDialog();enter(story);},true);
-    action(result.reward?'收好，继续探索':'继续探索',closeWorldDialog,!actions.children.length);
-    Campus3D.setActive(false);$('world-dialog').showModal();icons();
+    Campus3D.setActive(false);
+    if(!$('world-dialog').open)$('world-dialog').showModal();
+    icons();
   }
   const stats = { intelligence: '智力', compute: '算力', reputation: '声望', cash: '财富', physique: '体魄', spirit: '精神' };
   const role = { 陈旭: '重生者 · 天枢宿主', 天枢: '量子智脑 · 意识连接', 林晚: '经管系新生', 苏祁: '室友 · 技术搭档', 顾清河: '计算机学院教授', 赵天宇: '同届学生', 陆沉: '未知协议宿主' };

@@ -7,3 +7,7 @@ assets/kenney-nature/Models/
 # Generated browser captures.
 tests/screenshots/
 .playwright-mcp/
+
+# Verification-only dependencies. The game itself needs no install (file:// static page).
+node_modules/
+package-lock.json

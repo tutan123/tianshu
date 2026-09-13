@@ -1,0 +1,19 @@
+{
+  "name": "tianshu-webdemo",
+  "version": "3.3.0",
+  "private": true,
+  "description": "天枢 · 重返江大 — 纯静态离线校园互动影游纵向切片。运行游戏本身不需要安装任何依赖；下面的 devDependency 只用于自动化验证。",
+  "scripts": {
+    "verify": "node tests/verify.cjs",
+    "verify:unit": "node tests/verify.cjs --unit",
+    "verify:browser": "node tests/verify.cjs --browser",
+    "probe": "node tests/agent.probe.cjs",
+    "play": "node -e \"require('child_process').exec('start \"\" index.html')\""
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

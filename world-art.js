@@ -35,7 +35,12 @@ globalThis.WorldArt = (() => {
     const visuals={};
     for(const o of objects){
       const g=new THREE.Group();g.position.set(o.x,0,o.z);root.add(g);visuals[o.id]=g;
-      if(o.type==='npc')npc(g,0,0,['#657eaf','#a56a80','#6d9a85'][o.name.length%3],o.name.length);
+      if(o.type==='npc'){
+        // Named cast from characters.js; the procedural figure stays as fallback.
+        const actor=globalThis.Characters?.create(o.character||'studentA');
+        if(actor)g.add(actor.group);
+        else npc(g,0,0,['#657eaf','#a56a80','#6d9a85'][o.name.length%3],o.name.length);
+      }
       else if(o.type==='chest'){
         box(g,1.3,.7,.9,'#865d49',0,.55,0); const lid=box(g,1.4,.22,1,'#b27c4c',0,1.02,0);g.userData.lid=lid;
         for(const x of[-.45,.45])box(g,.1,.88,1.04,'#ddb86b',x,.64,0);box(g,.22,.24,.1,'#edcf7d',0,.77,.55);
@@ -198,5 +203,5 @@ globalThis.WorldArt = (() => {
     }
   }
   const height=(x,z)=>x<-42&&z<-13?Math.min(1.3,(-z-13)*.32):.22;
-  return {asset,label,npc,interior,outdoor,campusGrounds,refresh,height};
+  return {asset,label,npc,interactables,interior,outdoor,campusGrounds,refresh,height};
 })();

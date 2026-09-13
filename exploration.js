@@ -50,12 +50,12 @@ globalThis.Exploration = (() => {
   const outdoor = [
     { id: 'woodland-cache', type: 'chest', name: '台地上的旧旅行箱', x: -49, z: -26, cash: 180, xp: 35 },
     { id: 'woodland-herbs', type: 'chest', name: '林间补给匣', x: -52, z: 19, cash: 80, xp: 25 },
-    { id: 'woodland-npc', type: 'npc', name: '摄影社学姐', x: -47, z: 1, text: '台阶上面是旧气象台的遗址。从林间小径往北走，会经过一片秋树。下面的岔路通向补给匣，别只沿着主路走。' },
+    { id: 'woodland-npc', type: 'npc', name: '摄影社学姐', x: -47, z: 1, character: 'photographer', zone: 'lake', text: '台阶上面是旧气象台的遗址。从林间小径往北走，会经过一片秋树。下面的岔路通向补给匣，别只沿着主路走。' },
     { id: 'garden-chest', type: 'chest', name: '花圃后的铁盒', x: -28, z: -3, cash: 90, xp: 25 },
     { id: 'bridge-chest', type: 'chest', name: '桥畔旧木箱', x: -15, z: 26, cash: 100, xp: 25 },
     { id: 'courtyard-chest', type: 'chest', name: '钟楼庭院藏匣', x: 8, z: -32, cash: 120, xp: 30 },
     { id: 'lab-garden-note', type: 'note', name: '石碑上的刻字', x: 18, z: 13, text: '“在错误发生之前，做出不同的选择。”落款的年份是 2038。' },
-    { id: 'campus-npc', type: 'npc', name: '社团招新同学', x: -5, z: -5, text: '教学楼后有个安静的小庭院。里面那只铁盒，学长说只留给愿意绕路的人。' },
+    { id: 'campus-npc', type: 'npc', name: '社团招新同学', x: -5, z: -5, character: 'studentB', zone: 'plaza', text: '教学楼后有个安静的小庭院。里面那只铁盒，学长说只留给愿意绕路的人。' },
     { id: 'dorm-annex-door', type: 'door', name: '进入宿舍北楼', x: -25, z: -23.2, destination: 'dorm' },
     { id: 'dorm-west-door', type: 'door', name: '进入宿舍西楼', x: -36, z: -8.5, destination: 'dorm' },
     { id: 'gate-east-door', type: 'door', name: '进入维修铺东间', x: 34, z: 24.4, destination: 'gate' }
