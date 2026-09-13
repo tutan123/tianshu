@@ -27,20 +27,56 @@ globalThis.Campus3D = (() => {
     scene.add(result.root);colliders.push(result.collider);
     for(const material of result.windows)if(!windowMaterials.includes(material))windowMaterials.push(material);
     const meshes=[];result.root.traverse(o=>{if(o.isMesh)meshes.push({object:o,original:o.material,ghost:null});});
-    architectureVisuals.push({root:result.root,meshes,faded:false,bounds:new THREE.Box3(new THREE.Vector3(x-w/2-.5,0,z-d/2-.5),new THREE.Vector3(x+w/2+.5,kind==='hall'?16.5:h+2.8,z+d/2+1.4))});
+    architectureVisuals.push({root:result.root,meshes,objects:meshes.map(m=>m.object),faded:false,bounds:new THREE.Box3(new THREE.Vector3(x-w/2-.5,0,z-d/2-.5),new THREE.Vector3(x+w/2+.5,kind==='hall'?16.5:h+2.8,z+d/2+1.4))});
     return result.root;
   }
+  const occluderRay = new THREE.Raycaster();
+  let occlusionFrame = 0;
   function updateOcclusion() {
-    const aim=player.group.position.clone().add(new THREE.Vector3(0,1.3,0)),direction=aim.clone().sub(camera.position),distance=direction.length();
-    const ray=new THREE.Ray(camera.position,direction.normalize()),hit=new THREE.Vector3();
-    for(const item of architectureVisuals)item.faded=mode==='walk'&&!zone&&!!ray.intersectBox(item.bounds,hit)&&camera.position.distanceTo(hit)<distance-.35;
+    // Precise mesh raycasts are not free, and occlusion changes slowly, so re-test
+    // every few frames instead of every frame.
+    if (occlusionFrame++ % 3 !== 0) return;
+    const hit = new THREE.Vector3();
+    // Sample feet, torso and head. Fogging a building is only justified when the whole
+    // figure is hidden; one clear sample means the player is still visible, and fading
+    // anyway just washed the screen out for nothing.
+    const samples = [.25, 1.3, 2.05].map(height => {
+      const aim = player.group.position.clone(); aim.y += height;
+      const direction = aim.sub(camera.position);
+      return { direction, unit: direction.clone().normalize(), distance: direction.length() };
+    });
+    for (const item of architectureVisuals) {
+      if (mode !== 'walk' || zone) { item.faded = false; continue; }
+      // Cheap box prefilter first. On its own it was not enough: the box is padded
+      // beyond the walls and up to the roof, so the camera-to-player ray clipped it
+      // while the player was still plainly in view.
+      const near = samples.some(s => new THREE.Ray(camera.position, s.unit).intersectBox(item.bounds, hit) && camera.position.distanceTo(hit) < s.distance - .35);
+      if (!near) { item.faded = false; continue; }
+      item.faded = samples.every(s => {
+        occluderRay.set(camera.position, s.unit);
+        occluderRay.near = 0; occluderRay.far = s.distance - .35;
+        return occluderRay.intersectObjects(item.objects, false).length > 0;
+      });
+    }
   }
   function applyOcclusion(enabled) {
     for(const item of architectureVisuals)for(const part of item.meshes){
       if(enabled&&item.faded){
-        if(!part.ghost){part.ghost=part.original.clone();part.ghost.transparent=true;part.ghost.opacity=.14;part.ghost.depthWrite=false;}
-        part.ghost.emissiveIntensity=part.original.emissiveIntensity;part.object.material=part.ghost;
-      }else part.object.material=part.original;
+        if(!part.ghost){
+          part.ghost=part.original.clone();
+          part.ghost.transparent=true;
+          part.ghost.opacity=.3;
+          // Keep depth writes ON. With depthWrite off every surface of the building
+          // blended with every other one — front faces, back faces and interior
+          // details at once — so the occluder turned into a muddy wash with the
+          // facade showing through itself. Writing depth makes it a single readable
+          // translucent volume, and the player (already drawn in the opaque pass)
+          // simply shows through it at 70%.
+          part.ghost.depthWrite=true;
+        }
+        part.ghost.emissiveIntensity=part.original.emissiveIntensity;
+        if(part.object.material!==part.ghost)part.object.material=part.ghost;
+      }else if(part.object.material!==part.original)part.object.material=part.original;
     }
   }
   // One shared CC0 tree set. Previously the campus grid used procedural icosahedron
