@@ -4,7 +4,8 @@
   CC0. Downloaded from the official site on 2026-09-12. Original files and license are retained in `kenney-furniture/`.
 - Kenney Nature Kit: https://kenney.nl/assets/nature-kit
   CC0. Downloaded from the official site on 2026-09-12. Original files and license are retained in `kenney-nature/`.
-- `kenney-meshes.js`: 23 selected GLB models converted by Blender 5.2.1 for offline file-based loading. The reproducible converter is `docs/export-kenney.py`.
+- `kenney-meshes.js`: GLB models converted for offline file-based loading. Originally 23 models produced by Blender 5.2.1 (`docs/export-kenney.py`); now 38 models produced by `docs/export-kenney.cjs`, a Node converter that needs no Blender. `node docs/export-kenney.cjs --verify` proves it reproduces all 23 previously committed models exactly before you trust a re-export.
+- The Kenney kits store their palette as sRGB bytes inside glTF's `baseColorFactor`, which the spec defines as linear. Reading them as linear washed every Kenney prop out (bark rendered as pale peach `#F2BE9E` instead of `#E28457`, foliage as pale mint `#70E6D6` instead of `#29C9AB`); the official `kenney-nature/Side/*.png` previews confirm the intended colours. `WorldArt.asset` now converts sRGB to linear on load.
 - `clocktower-mesh.js`, `tianshu-clocktower.blend`, `clocktower-render.png`: original campus clocktower created for this prototype. Source: `docs/build-clocktower.py`.
 - Existing stills and video clips were preserved from the earlier local prototype. They are reference/demo material, not cleared commercial-release assets. Replace or clear their rights before publication.
 

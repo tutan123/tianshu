@@ -8,18 +8,35 @@ globalThis.WorldArt = (() => {
   function asset(root,name,x,y,z,height=1,rotation=0) {
     if (!prototypes[name] && globalThis.KENNEY_MESHES?.[name]) {
       const g = new THREE.Group();
-      for (const part of KENNEY_MESHES[name]) { const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(part.positions,3)); geo.computeVertexNormals(); const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({ color:new THREE.Color().fromArray(part.color),roughness:.8 })); m.castShadow=m.receiveShadow=true; g.add(m); }
+      // The Kenney kits store their palette as sRGB bytes inside glTF's
+      // baseColorFactor, which glTF defines as linear. The official Side/*.png
+      // previews confirm it: tree_oak's trunk is a mid brown (#E28457) and its
+      // foliage a saturated teal (#29C9AB), not the pale peach (#F2BE9E) and mint
+      // (#70E6D6) you get by reading the numbers as linear. Every Kenney prop in the
+      // game was rendering washed out because of this, which also made the interiors
+      // look overexposed. Convert on the way in so the source colours survive.
+      for (const part of KENNEY_MESHES[name]) { const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(part.positions,3)); geo.computeVertexNormals(); const color=new THREE.Color().fromArray(part.color).convertSRGBToLinear(); const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({ color,roughness:.8 })); m.castShadow=m.receiveShadow=true; g.add(m); }
       const b=new THREE.Box3().setFromObject(g), size=b.getSize(new THREE.Vector3()), center=b.getCenter(new THREE.Vector3());
       g.children.forEach(m=>{ m.geometry.translate(-center.x,-b.min.y,-center.z); m.geometry.scale(1/size.y,1/size.y,1/size.y); }); prototypes[name]=g;
     }
     if (!prototypes[name]) return box(root,height,height,height,'#94a594',x,y+height/2,z);
     const a=prototypes[name].clone(); a.position.set(x,y,z); a.scale.setScalar(height); a.rotation.y=rotation; root.add(a); return a;
   }
+  function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
   function label(root,text,x,y,z,color='#e4f3ee',width=4.5) {
-    const canvas=document.createElement('canvas'); canvas.width=512; canvas.height=80; const c=canvas.getContext('2d');
-    c.fillStyle='#172a32e8'; c.fillRect(0,0,512,80); c.fillStyle=color; c.font='bold 30px Microsoft YaHei'; c.textAlign='center'; c.fillText(text,256,51,490);
+    const canvas=document.createElement('canvas'); canvas.width=512; canvas.height=96; const c=canvas.getContext('2d');
+    c.font='bold 32px Microsoft YaHei'; c.textAlign='center'; c.textBaseline='middle';
+    // A scrim that hugs the text. The previous full-width opaque plate read as a debug
+    // overlay under the top-down interior camera, where it was the loudest thing on screen.
+    const textWidth=Math.min(456,Math.max(40,c.measureText(text).width)), padX=24, padY=14;
+    const w=textWidth+padX*2, h=42+padY*2;
+    roundRect(c,(512-w)/2,(96-h)/2,w,h,17);
+    c.fillStyle='rgba(12,32,40,0.42)'; c.fill();
+    c.strokeStyle='rgba(226,244,238,0.30)'; c.lineWidth=2; c.stroke();
+    c.shadowColor='rgba(6,18,24,0.85)'; c.shadowBlur=10;
+    c.fillStyle=color; c.fillText(text,256,50,textWidth);
     const texture=new THREE.CanvasTexture(canvas); texture.encoding=THREE.sRGBEncoding;
-    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false,transparent:true})); sprite.layers.set(1);sprite.position.set(x,y,z); sprite.scale.set(width,width*80/512,1); sprite.renderOrder=3; root.add(sprite); return sprite;
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false,transparent:true})); sprite.layers.set(1);sprite.position.set(x,y,z); sprite.scale.set(width,width*96/512,1); sprite.renderOrder=3; root.add(sprite); return sprite;
   }
   function npc(root,x,z,color='#779fba',variant=0) {
     const g=new THREE.Group(); root.add(g); g.position.set(x,.15,z);

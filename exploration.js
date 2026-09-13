@@ -63,11 +63,55 @@ globalThis.Exploration = (() => {
   const all = () => [...outdoor, ...Object.keys(regions).flatMap(objects)];
   const fresh = () => ({ opened: [], stamps: [], talked: [], switches: [], visited: [], claimed: false });
   function ensure(s) { return RPG.ensure(s).world ||= fresh(); }
+  // Frozen snapshot of every interaction id that has ever been legal, grouped by the
+  // save field it lands in. validate() checks against the union of this snapshot and
+  // whatever objects() currently produces, so renaming or retiring an object cannot
+  // present itself to the player as "corrupt save" — the old id stays acceptable.
+  //
+  // RULE: add ids here when you add them to objects(); never delete one. If
+  // tests/interiors.test.cjs or the snapshot test fails, it means a new object id is
+  // missing from this list.
+  const HISTORICAL_IDS = {
+    opened: [
+      'bridge-chest', 'courtyard-chest', 'dorm-chest', 'dorm-task', 'garden-chest', 'gate-chest',
+      'gate-task', 'gym-chest', 'gym-task', 'hall-chest', 'hall-task', 'lab-cache', 'lab-chest',
+      'lab-task', 'lake-chest', 'lake-task', 'library-chest', 'library-task', 'plaza-chest',
+      'plaza-task', 'woodland-cache', 'woodland-herbs'
+    ],
+    stamps: [
+      'dorm', 'gate', 'gym', 'hall', 'lab', 'lake', 'library', 'plaza'
+    ],
+    talked: [
+      'campus-npc', 'dorm-note', 'dorm-npc', 'dorm-researcher', 'dorm-student', 'gate-note',
+      'gate-npc', 'gate-researcher', 'gate-student', 'gym-note', 'gym-npc', 'gym-researcher',
+      'gym-student', 'hall-note', 'hall-npc', 'hall-researcher', 'hall-student',
+      'lab-garden-note', 'lab-note', 'lab-npc', 'lab-researcher', 'lab-student', 'lake-note',
+      'lake-npc', 'lake-researcher', 'lake-student', 'library-note', 'library-npc',
+      'library-researcher', 'library-student', 'plaza-note', 'plaza-npc', 'plaza-researcher',
+      'plaza-student', 'woodland-npc'
+    ],
+    switches: [
+      'dorm-puzzle', 'gate-puzzle', 'gym-puzzle', 'hall-puzzle', 'lab-puzzle', 'lab-switch',
+      'lake-puzzle', 'library-puzzle', 'plaza-puzzle'
+    ],
+    visited: [
+      'dorm', 'gate', 'gym', 'hall', 'lab', 'lake', 'library', 'plaza'
+    ],
+  };
+  function allowedIds(key) {
+    const objects = all(), zones = Object.keys(regions), ids = type => objects.filter(o => type.includes(o.type)).map(o => o.id);
+    const current = key === 'opened' ? [...ids(['chest']), ...zones.map(z => z + '-task')]
+      : key === 'stamps' || key === 'visited' ? zones
+        : key === 'talked' ? ids(['npc', 'note'])
+          : key === 'switches' ? ids(['switch', 'puzzle'])
+            : [];
+    return new Set([...HISTORICAL_IDS[key], ...current]);
+  }
   function validate(w) {
     if (!w) return fresh();
-    const ids = type => all().filter(o=>type.includes(o.type)).map(o=>o.id);
-    for (const [key, allowed] of Object.entries({ opened: [...ids(['chest']),...Object.keys(regions).map(z=>z+'-task')], stamps: Object.keys(regions), talked: ids(['npc','note']), switches: ids(['switch','puzzle']), visited: Object.keys(regions) })) {
-      if (!Array.isArray(w[key]) || new Set(w[key]).size !== w[key].length || w[key].some(id=>!allowed.includes(id))) return null;
+    for (const key of ['opened', 'stamps', 'talked', 'switches', 'visited']) {
+      const allowed = allowedIds(key);
+      if (!Array.isArray(w[key]) || new Set(w[key]).size !== w[key].length || w[key].some(id => !allowed.has(id))) return null;
     }
     return typeof w.claimed === 'boolean' ? w : null;
   }
@@ -124,5 +168,5 @@ globalThis.Exploration = (() => {
     if (o.type === 'npc' || o.type === 'note') { if (!w.talked.includes(id)) { w.talked.push(id); RPG.xp(s,5); } return { ok:true, text:o.text }; }
     return { ok:true, game:o.game, destination:o.destination, exit:o.type==='exit', text:'终端已就绪。' };
   }
-  return { regions, objects, outdoor, all, fresh, ensure, validate, act, quests, evidence };
+  return { regions, objects, outdoor, all, fresh, ensure, validate, act, quests, evidence, historicalIds: HISTORICAL_IDS, allowedIds };
 })();

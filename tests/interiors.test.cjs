@@ -32,3 +32,29 @@ test('room investigations require clues and correct choices, pay once, and round
  assert.equal(E.quests(TS.restore(JSON.stringify(s))).filter(q=>q.complete).length,8);
  assert.ok(TS.restore(JSON.stringify(TS.fresh())));
 });
+test('the historical id snapshot covers every id the content produces',()=>{
+ const {Interiors:I,Exploration:E}=game();
+ // Renaming or retiring an object must never turn a real save into "corrupt save",
+ // so validate() unions a frozen snapshot with the live object list. This asserts
+ // the snapshot stays complete: a new object whose id is missing from it fails here.
+ const field={chest:'opened',note:'talked',npc:'talked',switch:'switches',puzzle:'switches'};
+ for(const o of E.all()){
+   const key=field[o.type];if(!key)continue;
+   assert.ok(E.historicalIds[key].includes(o.id),o.id+' is missing from HISTORICAL_IDS.'+key);
+ }
+ for(const zone of Object.keys(E.regions)){
+   assert.ok(E.historicalIds.opened.includes(zone+'-task'),zone+'-task is missing from HISTORICAL_IDS.opened');
+   assert.ok(E.historicalIds.stamps.includes(zone),zone+' is missing from HISTORICAL_IDS.stamps');
+ }
+});
+test('a save naming a snapshot id validates while an unknown id is still rejected',()=>{
+ const {Exploration:E,TS}=game(),s=TS.fresh(),w=E.ensure(s);
+ // The snapshot exists so a renamed object keeps its old id acceptable. Use an id
+ // that is definitely in the snapshot, then prove an invented id is still refused.
+ const known=E.historicalIds.talked[0];
+ assert.ok(known);
+ w.talked.push(known);
+ assert.ok(TS.restore(JSON.stringify(s)),'a snapshot id must keep validating');
+ w.talked.push('definitely-not-a-real-object');
+ assert.equal(TS.restore(JSON.stringify(s)),null,'an unknown id must still be rejected');
+});

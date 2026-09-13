@@ -7,7 +7,7 @@ globalThis.Campus3D = (() => {
   let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect;
   const T = () => window.THREE;
   const mat = (c, roughness = .85) => new THREE.MeshStandardMaterial({ color: c, roughness });
-  let white, stone, roofMat, glass, pavement, road, treeMat, trunkMat, brass;
+  let white, stone, roofMat, glass, pavement, road, brass;
   const geometries = {};
   const previews = {};
   const architectureVisuals = [];
@@ -43,11 +43,16 @@ globalThis.Campus3D = (() => {
       }else part.object.material=part.original;
     }
   }
-  function tree(x, z, scale = 1) {
-    const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(scale); scene.add(g);
-    cylinder(.15, 2.5, trunkMat, 0, 1.25, 0, g, 6);
-    const canopy = mesh(geometries.foliage, treeMat, 0, 3.2, 0, g); canopy.scale.set(1.1, 1.3, 1.1);
-    mesh(geometries.foliage, treeMat, .65, 3, 0, g).scale.setScalar(.8);
+  // One shared CC0 tree set. Previously the campus grid used procedural icosahedron
+  // canopies while world-art.js dressed the outskirts with Kenney meshes, so two art
+  // styles shared the same screen. Everything now comes from the same kit.
+  const TREE_KINDS = ['tree_oak', 'tree_detailed', 'tree_default', 'tree_fat', 'tree_tall', 'tree_small', 'tree_thin', 'tree_blocks', 'tree_pineRoundA', 'tree_pineTallA'];
+  const hash2 = (x, z, salt) => Math.abs(Math.round(x * 31 + z * 17 + salt * 7));
+  function tree(x, z, scale = 1, forced = 0) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    const kind = TREE_KINDS[(forced || hash2(x, z, 1)) % TREE_KINDS.length];
+    WorldArt.asset(g, kind, 0, 0, 0, 4.6 * scale, (hash2(x, z, 3) % 12) * Math.PI / 6);
+    return g;
   }
   function bench(x, z, rotation = 0) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotation; scene.add(g);
@@ -92,8 +97,7 @@ globalThis.Campus3D = (() => {
     const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color })); scene.add(l); return l;
   }
   function build() {
-    white = mat('#e7ece9'); stone = mat('#b5c0c1'); roofMat = mat('#996e67'); glass = mat('#548da2', .25); pavement = CampusBuildings.material('paving'); road = mat('#727d87'); treeMat = mat('#527d55'); trunkMat = mat('#7a6551'); brass = mat('#3f4b43');
-    geometries.foliage = new THREE.IcosahedronGeometry(1.3, 1);
+    white = mat('#e7ece9'); stone = mat('#b5c0c1'); roofMat = mat('#996e67'); glass = mat('#548da2', .25); pavement = CampusBuildings.material('paving'); road = mat('#727d87'); brass = mat('#3f4b43');
     box(180, .3, 180, mat('#719375'), 0, -.4, 0);
     box(86, .25, 79, mat('#8daa79'), 0, -.1, 0);
     box(7, .12, 78, pavement, 0, .04, 0); box(82, .12, 5, pavement, 0, .04, 9); box(82, .12, 5, pavement, 0, .04, -8);
