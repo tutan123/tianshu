@@ -2,7 +2,7 @@
 globalThis.Campus3D = (() => {
   const coords = { dorm: [-22, -14], hall: [0, -21], library: [23, -17], lake: [-23, 13], gym: [2, 22], lab: [24, 4], gate: [26, 25], plaza: [0, 0] };
   const entries = { dorm: [-22, -8], hall: [0, -14], library: [23, -10], lake: [-35, 2], gym: [-6, 29], lab: [24, 10], gate: [26, 28], plaza: [-24, 36] };
-  let scene, renderer, camera, miniCamera, host, hooks, sun, hemi, water, player, scan, rain, ringTarget, lamps = [], markers = {}, colliders = [];
+  let scene, renderer, camera, miniCamera, host, hooks, sun, hemi, water, player, scan, rain, ringTarget, lamps = [], lampPools = [], lampPoolMaterial = null, markers = {}, colliders = [];
   let mode = 'overview', active = true, weather = 'auto', worldNight = false, yaw = .08, pitch = .84, radius = 96, target, desiredTarget, last = 0, elapsed = 0, currentPlace = 'dorm', pointer = null, travel = null, pressed = new Set(), ready = false, near = null;
   let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect;
   const T = () => window.THREE;
@@ -99,6 +99,14 @@ globalThis.Campus3D = (() => {
     cylinder(.08, 3.8, brass, x, 1.9, z, scene, 6);
     const bulb = mesh(new THREE.BoxGeometry(.46, .55, .46), new THREE.MeshStandardMaterial({ color: '#f0ebcd', emissive: '#ffd77e', emissiveIntensity: .2 }), x, 3.9, z);
     lamps.push(bulb.material);
+    // A night-only pool of light on the pavement. Fourteen real PointLights would cost
+    // far more than the effect is worth; a soft additive disc reads the same from this
+    // camera distance and costs one shared material.
+    geometries.lampPool ||= new THREE.CircleGeometry(3.4, 20);
+    lampPoolMaterial ||= new THREE.MeshBasicMaterial({ color: '#ffce85', transparent: true, opacity: .2, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+    const pool = new THREE.Mesh(geometries.lampPool, lampPoolMaterial);
+    pool.rotation.x = -Math.PI / 2; pool.position.set(x, .065, z); pool.renderOrder = 2; pool.visible = false;
+    scene.add(pool); lampPools.push(pool);
   }
   function person(x, z, color, isPlayer = false) {
     const g = new THREE.Group(); scene.add(g); g.position.set(x, 0, z);
@@ -199,8 +207,14 @@ globalThis.Campus3D = (() => {
     if (!ready) return; weather = value; worldNight = worldState.night; for (const key of Object.keys(previews)) delete previews[key];
     const night = value === 'night' || value === 'rain' || value === 'auto' && worldNight, wet = value === 'rain' || value === 'auto' && worldNight;
     scene.background.set(night ? '#394752' : '#c7dce3'); scene.fog.color.copy(scene.background); fogBaseNear=night?190:260; scene.fog.near=fogBaseNear; scene.fog.far = 450;
-    hemi.intensity = night ? .45 : .85; sun.intensity = night ? .35 : 1.6; sun.color.set(night ? '#b2ccd9' : '#fff6e9'); renderer.toneMappingExposure = night ? .8 : .96;
-    rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 3 : .2; for (const m of windowMaterials) m.emissiveIntensity = night ? .24 : 0;
+    hemi.intensity = night ? .3 : .85; sun.intensity = night ? .2 : 1.6; sun.color.set(night ? '#b2ccd9' : '#fff6e9'); renderer.toneMappingExposure = night ? .74 : .96;
+    rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 4 : .2;
+    // Window materials are shared per building kind — architecture.test.cjs asserts two
+    // dorm blocks use the same material instance — so stagger the lit windows by
+    // material index instead of cloning a material per building. Buildings of the same
+    // kind stay in sync, different kinds do not, and no material is duplicated.
+    windowMaterials.forEach((m, i) => m.emissiveIntensity = night ? .72 + (i % 4) * .12 : 0);
+    for (const pool of lampPools) pool.visible = night;
     water.material.roughness = wet ? .12 : .25; hooks.weather?.(night, wet); return { night, wet };
   }
   function buildInterior(id) {
