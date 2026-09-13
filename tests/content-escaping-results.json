@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "testedAt": "2026-09-13T08:11:20.176Z",
+  "checks": [
+    "Event list renders injected markup as text",
+    "Event list shows the payload literally",
+    "Location sheet renders injected markup as text",
+    "Location sheet shows the payload literally",
+    "People panel renders injected markup as text",
+    "People panel shows the payload literally",
+    "Timeline panel renders injected markup as text",
+    "Timeline panel shows the payload literally",
+    "Quiz renders injected markup as text",
+    "Quiz shows the payload literally",
+    "Injected onerror handler never executed",
+    "Escaping introduces no page errors"
+  ],
+  "errors": [],
+  "rendered": {
+    "eventMarkup": 0,
+    "eventLiteral": true,
+    "locationMarkup": 0,
+    "locationLiteral": true,
+    "peopleMarkup": 0,
+    "peopleLiteral": true,
+    "timelineMarkup": 0,
+    "timelineLiteral": true,
+    "quizMarkup": 0,
+    "quizLiteral": true,
+    "handlerRan": false
+  }
+}

@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-13T08:05:49.889Z",
+  "testedAt": "2026-09-13T08:12:47.949Z",
   "checks": [
     "Four separate accessible main views",
     "Profile displays actual battle health",
