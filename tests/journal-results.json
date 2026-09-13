@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "testedAt": "2026-09-13T12:49:44.281Z",
+  "checks": [
+    "Completed investigation is not counted as a chest",
+    "Completed room investigation is shown as archived",
+    "Next objective follows the current interior",
+    "Character moves under held input",
+    "Mobile objective journal does not overlap minimap",
+    "Interior objective clears on return to campus",
+    "No uncaught errors in journal and movement"
+  ],
+  "errors": []
+}

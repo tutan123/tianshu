@@ -68,11 +68,27 @@ globalThis.WorldArt = (() => {
         box(g,.8,.9,.8,'#71868a',0,.6,0);box(g,.4,.17,.4,o.type==='stamp'?'#e1ad62':'#89c5d5',0,1.15,0);
       }else if(o.type==='switch'){
         box(g,.9,1.4,.4,'#5e7880',0,.85,0);box(g,.2,.5,.15,'#d58462',0,1.15,.3);
+      }else if(o.type==='puzzle'){
+        const colors={dorm:'#749bb1',hall:'#416c61',library:'#9c7895',lake:'#659fac',gym:'#709b85',lab:'#668fa7',gate:'#9e936b',plaza:'#8b829e'};
+        if(o.zone==='dorm'){
+          for(let i=0;i<3;i++){box(g,.58,1.65,.6,['#749bb1','#ac7677','#9ca5a8'][i],(i-1)*.66,1,0);box(g,.06,.2,.08,'#e5debd',(i-1)*.66+.17,1,.34);}
+        }else if(o.zone==='hall'||o.zone==='gym'){
+          for(const x of[-.65,.65])box(g,.08,1.6,.13,'#667e87',x,.95,0);
+          box(g,1.9,1.15,.12,colors[o.zone],0,1.7,0);
+          for(let i=0;i<4;i++)box(g,.26,.04,.025,'#edeedc',-.6+i*.4,1.8,.08);
+        }else if(o.zone==='library'){
+          box(g,1.8,1.3,.65,colors.library,0,.85,0);
+          for(let i=0;i<6;i++)box(g,.46,.03,.1,'#e0d8b9',-.56+(i%3)*.56,.55+Math.floor(i/3)*.6,.38);
+        }else{
+          box(g,1.5,.9,.9,colors[o.zone]||'#7e999c',0,.65,0);
+          box(g,1,.6,.15,'#364e60',0,1.4,-.12);box(g,.8,.4,.025,'#85d1c3',0,1.4,-.03);
+          for(let i=0;i<3;i++)box(g,.12,.08,.16,['#d1b568','#bc7a8b','#a1c9c2'][i],-.4+i*.4,1.15,.28);
+        }
       }else if(o.type==='note'){
         box(g,1.4,.95,.8,'#9e8975',0,.6,0);box(g,.55,.025,.42,'#eff0dc',0,1.09,0);
       }else { box(g,2,.035,1.4,'#6dc8b7',0,.2,0); }
       const ring=new THREE.Mesh(new THREE.RingGeometry(.78,.88,24),new THREE.MeshBasicMaterial({color:o.type==='chest'?'#f0c570':'#86dce1',side:THREE.DoubleSide,transparent:true,opacity:.8}));ring.rotation.x=-Math.PI/2;ring.position.y=.22;g.add(ring);g.userData.ring=ring;
-      const short={chest:'宝箱',stamp:'印章',pc:'终端',switch:'电源',quest:'校史委托',exit:'出口',door:'入口',note:'便签'};
+      const short={chest:'宝箱',stamp:'印章',pc:'终端',switch:'电源',quest:o.questId?'调查交付':'校史委托',puzzle:'现场推理',exit:'出口',door:'入口',note:'便签'};
       label(g,short[o.type]||o.name,0,o.type==='npc'?2.7:2.5,0,o.type==='chest'?'#ffdc94':'#d6f8f0',o.type==='npc'?3:2.1);
     }
     return visuals;

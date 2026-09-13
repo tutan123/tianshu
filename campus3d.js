@@ -171,7 +171,12 @@ globalThis.Campus3D = (() => {
     for (const [x, z] of [[-38, 2], [-37, 6], [-20, 0], [-31, 0], [-39, 26], [-38, 30], [18, 15], [33, -5], [30, -33]]) tree(x, z, 1.1);
     for (let z = -29; z < 34; z += 10) { lamp(-4.5, z); lamp(5, z); }
     for (const [x, z] of [[-6, 7], [7, 7], [-16, 11], [-14, 22], [16, -10]]) bench(x, z, x < -10 ? Math.PI / 2 : 0);
-    for (let i = 0; i < 20; i++) { const p = person(i % 2 ? -2 : 2, -30 + i * 3.1, ['#bd9a72', '#7898a2', '#c4b2a1', '#a78287'][i % 4]); p.origin = p.group.position.clone(); p.speed = .25 + i % 3 * .1; people.push(p); }
+    const pedestrianProfiles = ['studentA', 'studentB', 'photographer', 'technician', 'captain'];
+    for (let i = 0; i < 20; i++) {
+      const x = i % 2 ? -2 : 2, z = -30 + i * 3.1;
+      const p = characterActor(pedestrianProfiles[i % pedestrianProfiles.length]) || person(x, z, '#7898a2');
+      p.group.position.set(x, .22, z); p.origin = p.group.position.clone(); p.speed = .25 + i % 3 * .1; people.push(p);
+    }
     player = playerFigure(-22, -3);
     ringTarget = mesh(new THREE.RingGeometry(.65, .72, 28), new THREE.MeshBasicMaterial({ color: '#d5efb0', transparent: true, opacity: .8, side: THREE.DoubleSide }), 0, .12, 0); ringTarget.rotation.x = -Math.PI / 2; ringTarget.visible = false;
     for (const [id, [x, z]] of Object.entries(entries)) {

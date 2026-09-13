@@ -96,7 +96,11 @@
     RPG.ensure(state);
     const exploration=Exploration.ensure(state);
     $('stamp-progress').textContent=exploration.stamps.length+' / 8';
-    $('exploration-progress').textContent=exploration.claimed?'校史寻踪已完成':exploration.stamps.length===8?'前往学生会馆交付印章':`已探索 ${exploration.visited.length} 处室内 · 打开 ${exploration.opened.length} 个宝箱`;
+    const openedChests=Exploration.all().filter(o=>o.type==='chest'&&exploration.opened.includes(o.id)).length;
+    $('exploration-progress').textContent=exploration.claimed?'校史寻踪已完成':exploration.stamps.length===8?'前往学生会馆交付印章':`已探索 ${exploration.visited.length} 处室内 · 打开 ${openedChests} 个宝箱`;
+    const localQuest=Exploration.quests(state).find(q=>q.zone===window.Campus3D?.getZone());
+    $('local-investigation').hidden=!localQuest;
+    $('local-investigation').textContent=localQuest?localQuest.title+' · '+(localQuest.complete?'已归档':localQuest.steps.find(step=>!step.done)?.text||'等待交付'):'';
     $('host-level').textContent = 'Lv.' + RPG.level(state);
     $('host-xp').textContent = state.rpg.xp + ' EXP';
     $('top-stats').innerHTML = `<div class="top-stat">${icon('cpu')}<div><small>可用算力</small><b>${Math.round(state.stats.compute)} <small>/ ${state.stats.maxCompute}</small></b></div></div><div class="top-stat">${icon('wallet')}<div><small>财富</small><b>¥ ${state.stats.cash.toLocaleString()}</b></div></div><div class="top-stat">${icon('sparkles')}<div><small>校园声望</small><b>${state.stats.reputation}</b></div></div>`;
@@ -243,7 +247,10 @@
   function closePanel() { $('panel').close(); panelName = ''; if (state.active && !paused) $('scene-video').play().catch(() => {}); window.Campus3D?.setActive(!state.active); save(); hud(); }
   function panelBody() {
     const body = $('panel-body');
-    if (panelName === 'rpg') { GrowthUI.render(body, state, { save, hud, sound, toast, icons }); return; }
+    if (panelName === 'rpg') { GrowthUI.render(body, state, { save, hud, sound, toast, icons, visit(zone) {
+      if (state.active || !CONTENT.places[zone] || !mapReady()) return;
+      closePanel(); selectedPlace = zone; selectedEvent = null; renderMap(); mapMode('walk');
+    } }); return; }
     if (panelName === 'modules') {
       body.innerHTML = `<p class="panel-intro">宿主：陈旭 / 意识同步率 97.3%<br>当前可用算力 <b>${state.stats.compute}</b> / ${state.stats.maxCompute}</p><div class="stat-grid">${Object.entries(stats).map(([k, n]) => `<div class="stat-tile"><span>${n}</span><strong>${state.stats[k]}</strong></div>`).join('')}</div>${Object.entries(CONTENT.modules).map(([id, m]) => `<div class="module-row"><div class="module-icon">${icon(m.icon)}</div><div><h3>${esc(m.name)}<small>Lv.${state.modules[id]} / 2</small></h3><p>${state.modules[id] ? esc(m.desc[state.modules[id] - 1]) : '尚未接入'}${state.modules[id] < 2 ? '<br>下一阶：' + esc(m.desc[state.modules[id]]) : ''}</p></div><button class="primary" data-upgrade="${id}" ${state.modules[id] >= 2 || state.stats.compute < m.cost[state.modules[id]] ? 'disabled' : ''}>${state.modules[id] >= 2 ? icon('check') + ' 已满级' : icon('plus') + m.cost[state.modules[id]] + ' 算力'}</button></div>`).join('')}<div class="panel-actions"><button class="secondary" id="rest-panel" ${state.active ? 'disabled' : ''}>${icon('coffee')}休息恢复 · 20 算力</button></div>`;
       body.querySelectorAll('[data-upgrade]').forEach(b => b.addEventListener('click', () => { if (TS.upgrade(state, b.dataset.upgrade)) { save(); hud(); sound('win'); toast(CONTENT.modules[b.dataset.upgrade].name + ' 已升级'); panelBody(); } }));
@@ -387,7 +394,8 @@
         $('explore-place').textContent=id?Exploration.regions[id].name:CONTENT.places[selectedPlace].name;
         $('exit-walk').querySelector('span').textContent=id?'返回校园':'校园全景';
         $('mini-frame').querySelector('span').textContent=id?'室内平面 · 北 ↑':'江大 · 北 ↑';
-        if(id){const w=Exploration.ensure(state);if(!w.visited.includes(id))w.visited.push(id);save();hud();}
+        if(id){const w=Exploration.ensure(state);if(!w.visited.includes(id))w.visited.push(id);save();}
+        hud();
       },
       mode: next => {
         const walking = next === 'walk'; document.body.classList.toggle('walking', walking);
