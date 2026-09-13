@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-13T08:11:20.176Z",
+  "testedAt": "2026-09-13T08:18:33.503Z",
   "checks": [
     "Event list renders injected markup as text",
     "Event list shows the payload literally",

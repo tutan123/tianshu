@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-13T08:10:37.906Z",
+  "testedAt": "2026-09-13T08:17:50.756Z",
   "checks": [
     "Shop charges exact equipment price",
     "Owned gear cannot be bought twice",
