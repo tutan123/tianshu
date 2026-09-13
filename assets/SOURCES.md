@@ -1,5 +1,7 @@
 # Asset Sources
 
+> Per-file status, sizes and the pre-publication checklist live in [ASSET-LEDGER.md](ASSET-LEDGER.md). This file records provenance and reasoning.
+
 - Kenney Furniture Kit: https://kenney.nl/assets/furniture-kit
   CC0. Downloaded from the official site on 2026-09-12. Original files and license are retained in `kenney-furniture/`.
 - Kenney Nature Kit: https://kenney.nl/assets/nature-kit
