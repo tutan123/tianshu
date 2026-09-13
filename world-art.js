@@ -98,6 +98,60 @@ globalThis.WorldArt = (() => {
     const visuals=interactables(root,Exploration.objects(zone));
     return {root,colliders,visuals};
   }
+  function campusGrounds(root) {
+    const batches=new Map(),transform=new THREE.Object3D(),colliders=[];
+    const part=(color,w,h,d,x,y,z,rotation=[0,0,0])=>{
+      if(!batches.has(color))batches.set(color,[]);
+      transform.position.set(x,y,z);transform.scale.set(w,h,d);transform.rotation.set(...rotation);transform.updateMatrix();batches.get(color).push(transform.matrix.clone());
+    };
+    // Low curbs remain traversable; only solid furniture contributes collision.
+    for(const x of[-3.65,3.65,-14.2,-9.8,11.8,16.2,31.8,36.2])for(let z=-33;z<34;z+=1.1){
+      if(Math.abs(z+8)<3||Math.abs(z-9)<3)continue;
+      if((x===16.2||x===31.8)&&z<6)continue;
+      part('#a9b8b9',.18,.14,1.02,x,.15,z);
+    }
+    for(const z of[-10.65,-5.35,6.35,11.65])for(let x=-40;x<40;x+=1.1){
+      if(Math.abs(x)<4.1||Math.abs(x+12)<2.5||Math.abs(x-14)<2.5||Math.abs(x-34)<2.5)continue;
+      if(z>0&&x<-14)continue;
+      part('#a9b8b9',1.02,.14,.18,x,.15,z);
+    }
+    for(const [x,z,w,d] of[[-22,-10,12,1.4],[24,-12,15,1.5],[24,6,12,1.4],[-24,35,10,1.2]]){
+      part('#a9b8b9',w,.04,d,x,.12,z);
+      for(let px=x-w/2+.22;px<x+w/2;px+=.46)part('#d6dbd5',.39,.03,d-.12,px,.16,z);
+    }
+    for(let x=-38.8;x<-31.1;x+=.3)part('#a89078',.25,.055,1.3,x,.15,1.1);
+    for(const [x,z] of[[17,-12],[31,-12],[18,6.3],[30,6.3]]){
+      part('#bac4c2',2.1,.5,.65,x,.35,z);part('#557b60',1.98,.27,.56,x,.67,z);
+      for(let i=0;i<7;i++)part(i%2?'#e5c36c':'#b97d93',.13,.2,.13,x-.83+i*.27,.91,z);
+      colliders.push({x,z,w:1.2,d:.5});
+    }
+    for(const [x,z] of[[18,-10.4],[30,-10.4]]){
+      for(let k=0;k<4;k++)part('#9c8171',2,.08,.13,x,.65,z-.24+k*.16);
+      for(const dx of[-.7,.7])part('#506973',.09,.54,.55,x+dx,.32,z);
+      part('#9c8171',2,.45,.09,x,.91,z-.35);colliders.push({x,z,w:1.15,d:.48});
+    }
+    for(const [x,z,color] of[[32,25,'#bf7773'],[-38,-9,'#638ca3']]){
+      part(color,.9,1.7,.65,x,.95,z);part('#e2e8dd',.63,.8,.04,x,1.17,z+.34);
+      for(let i=0;i<6;i++)part(['#ba7468','#689b98','#c6b170'][i%3],.14,.18,.045,x-.2+(i%3)*.2,1.38-Math.floor(i/3)*.34,z+.37);
+      part('#334d59',.45,.15,.05,x,.42,z+.35);colliders.push({x,z,w:.6,d:.48});
+    }
+    const sx=-31,sz=-21;
+    part('#b8c3c3',2.5,.08,5,sx,.14,sz);
+    for(const dx of[-1,1])for(const dz of[-2.1,2.1])part('#587783',.09,2.6,.09,sx+dx,1.43,sz+dz);
+    part('#739ea8',2.7,.12,5.25,sx,2.85,sz,[0,0,.1]);
+    for(let i=-2;i<=2;i++)part('#d5e2dc',2.7,.05,.04,sx,2.94,sz+i);
+    const wheelGeometry=new THREE.TorusGeometry(.3,.035,5,18),wheelMaterial=material('#3d5058');
+    for(let i=0;i<3;i++){
+      const z=sz-1.45+i*1.4;
+      for(const dz of[-.42,.42]){const wheel=new THREE.Mesh(wheelGeometry,wheelMaterial);wheel.rotation.y=Math.PI/2;wheel.position.set(sx,.5,z+dz);wheel.castShadow=true;root.add(wheel);}
+      part('#6c9fa4',.045,.55,.055,sx,.78,z-.18,[-.6,0,0]);part('#6c9fa4',.045,.55,.055,sx,.78,z+.18,[.6,0,0]);part('#6c9fa4',.055,.055,.7,sx,.72,z);
+      part('#364e57',.27,.08,.32,sx,1.04,z-.18);part('#364e57',.055,.38,.055,sx,1.08,z+.4,[-.2,0,0]);part('#364e57',.47,.05,.05,sx,1.25,z+.44);
+    }
+    colliders.push({x:sx,z:sz,w:1.4,d:2.7});
+    const geometry=new THREE.BoxGeometry(1,1,1);
+    for(const [color,matrices] of batches){const m=new THREE.InstancedMesh(geometry,material(color),matrices.length);m.name='CampusGrounds_'+color;matrices.forEach((matrix,i)=>m.setMatrixAt(i,matrix));m.instanceMatrix.needsUpdate=true;m.castShadow=m.receiveShadow=true;m.frustumCulled=false;root.add(m);}
+    return colliders;
+  }
   function outdoor(root) {
     const colliders=[];
     const hedge=(x,z,w,d)=>{box(root,w,.3,d,'#b5bfb0',x,.15,z);box(root,w-.15,.85,d-.1,'#487c59',x,.65,z);colliders.push({x,z,w:w/2+.2,d:d/2+.2});};
@@ -113,7 +167,7 @@ globalThis.WorldArt = (() => {
     for(const [x,z,h] of[[-40,-31,5.2],[-17,-32,4.8],[13,-32,4.7],[-40,6,5.5],[-40,28,4.8],[18,18,4.8],[32,-33,5],[-18,1,4.2]])asset(root,x>0?'tree_detailed_fall':'tree_oak',x,.1,z,h);
     for(const [x,z] of[[-39,10],[-39,23],[-17,28],[18,16],[30,-32],[-18,-33]])asset(root,'rock_largeA',x,.1,z,1.1);
     for(let i=0;i<12;i++)asset(root,'plant_bushDetailed',-40+i*3.2,.1,-34,1.1);
-    for(let i=0;i<8;i++)asset(root,'lily_large',-28+Math.cos(i)*8,.12,15+Math.sin(i)*9,.12);
+    for(let i=0;i<8;i++)asset(root,'lily_large',-28+Math.cos(i)*8,.23,15+Math.sin(i)*9,.12);
     for(let i=0;i<6;i++)asset(root,'fence_planks',17+i*2.4,.1,30,1);
     box(root,17,.4,67,'#70895d',-49.5,-.06,0);
     box(root,14,1.2,18,'#7d9576',-49,.5,-25);
@@ -132,6 +186,7 @@ globalThis.WorldArt = (() => {
     box(root,3,.3,3,'#c5c6b3',-49,1.45,-28);box(root,.8,2.5,.8,'#a6b1aa',-49,2.8,-28);label(root,'旧气象台 · 林间小径',-49,4.8,-28,'#d8e7ca',6);
     const visuals=interactables(root,Exploration.outdoor);
     for(const o of Exploration.outdoor)if(o.x<-42&&o.z<-17)visuals[o.id].position.y=1.3;
+    colliders.push(...campusGrounds(root));
     return {colliders,visuals};
   }
   function refresh(visuals,world) {
@@ -143,5 +198,5 @@ globalThis.WorldArt = (() => {
     }
   }
   const height=(x,z)=>x<-42&&z<-13?Math.min(1.3,(-z-13)*.32):.22;
-  return {asset,label,npc,interior,outdoor,refresh,height};
+  return {asset,label,npc,interior,outdoor,campusGrounds,refresh,height};
 })();

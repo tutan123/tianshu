@@ -1,4 +1,4 @@
-# tianshu · 天枢：重返江大 | 探索版 3.1
+# tianshu · 天枢：重返江大 | 建筑精修版 3.2
 
 ## 开始试玩
 
@@ -7,6 +7,8 @@
 选择地点后点击“步行探索”。WASD、方向键或左下方向盘移动；点击地面会绕开建筑和墙体寻路。走近门、NPC 或物件后按 E，或点击右下互动按钮。左上地图按钮在局部跟随与全区俯视之间切换，室内左上“返回校园”离开建筑。
 
 ## 可玩内容
+
+本轮精修了 11 栋外部建筑（含附楼），使用八类不同的建筑结构：外廊宿舍、钟楼柱廊、玻璃中厅图书馆、格栅实验楼、木构船屋、弧顶运动馆、维修工坊与社团会馆。补充自行车棚、阅读座椅、花池、木平台和道路收边；遮住角色的前景建筑会淡化，小地图保持完整轮廓。细节陈设并非全部可交互，入口与原有玩法保持不变。
 
 - 10 段主线、4 段支线与三个首章结局。
 - 三维校园、镜湖、钟楼庭院、后街与西侧林间支路；林间包括台阶、台地、旧气象台和隐藏补给。
@@ -27,7 +29,7 @@
 单元测试：
 
 ```powershell
-node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cjs
+node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cjs tests/architecture.test.cjs
 ```
 
 浏览器验收使用独立上下文，不覆盖玩家存档：
@@ -36,14 +38,21 @@ node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cj
 - `tests/exploration.acceptance.js`：建筑入口与出口、互动目标寻路、八枚印章实际领取、任务交付、通电开箱、移动端布局和探索读档。
 - `tests/arcade.acceptance.js`：购买与换装、三轮信号操作、付费重放恢复、回收进度恢复、胜负结算及防止重复领奖。
 - `tests/outdoor.acceptance.js`：附楼入口、林间台阶与台地宝箱、悬崖阻挡、林间 NPC 和隐藏补给。
+- `tests/architecture.acceptance.js`：建筑差异、入口、角色遮挡、昼夜雨景、桌面与手机画面、主视图和小地图像素、离线资源检查。
 
 这些文件提供接收 Playwright Page 的验收函数。结果见 `tests/browser-results-v3.1.json`、`tests/exploration-results.json`、`tests/arcade-results.json`、`tests/outdoor-results.json`。本机截图保存在 `tests/screenshots/`，不纳入 Git。
 
-2026-09-12 本轮验证通过：19 项单元测试、63 项室内探索检查、13 项小游戏检查、14 项户外检查。原首章的 54 项浏览器验收记录保留在 `browser-results-v3.1.json`。
+2026-09-12 上一版验证通过：19 项单元测试、63 项室内探索检查、13 项小游戏检查、14 项户外检查。原首章的 54 项浏览器验收记录保留在 `browser-results-v3.1.json`。
+
+2026-09-13 建筑精修验证通过：23 项单元测试、39 项建筑画面与入口检查，以及重新执行的 63 项室内、14 项户外检查。新增记录见 `tests/architecture-results.json`。
+
+`tests/run-browser.cjs` 可通过独立 Chrome 运行这些验收函数，需要本机 Node 能解析 `playwright` 包。例如：`node tests/run-browser.cjs tests/architecture.acceptance.js`。运行游戏本身不依赖 Playwright。
 
 ## 设计和素材
 
 详细策划见 [探索版设计与迭代记录](docs/探索版设计与迭代记录.md)，早期完整策划保存在 `docs/天枢-游戏策划与设计文档-v1.0.md`。
+
+本轮日本校园参考资料、八类建筑美术方向及素材边界见 [建筑美术参考与素材边界](docs/建筑美术参考与素材边界.md)。新建筑与砖墙、铺装纹理由代码独立生成，没有将参考照片或参考游戏资产打包入本轮改动。旧版剧情影像仍需替换或核验授权，不能将本轮记录视为整个历史项目的版权清理结论。
 
 钟楼是本项目在 Blender 中制作的原创模型。23 个家具与自然模型来自 Kenney 的 CC0 素材，经 Blender 5.2 转换为可离线载入的网格；来源和许可证见 [素材来源](assets/SOURCES.md)。仓库不包含下载压缩包和原始 Models 目录，运行游戏使用 `assets/kenney-meshes.js`；重新转换需先取得原素材。
 
@@ -59,6 +68,7 @@ node --test tests/state.test.cjs tests/exploration.test.cjs tests/arcade.test.cj
 | `rpg.js` / `growth-ui.js` | 成长、装备、物品与商店 |
 | `exploration.js` | 区域、互动、任务与一次性奖励 |
 | `world-art.js` | 房间、环境陈设与离线模型 |
+| `campus-buildings.js` | 八类原创建筑、程序纹理与构件合批 |
 | `campus3d.js` | 渲染、相机、路径、碰撞和室内外切换 |
 | `game.js` | 演出、对话、界面与保存 |
 | `minigames.js` / `salvage.js` | 六类挑战 |

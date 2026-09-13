@@ -10,39 +10,38 @@ globalThis.Campus3D = (() => {
   let white, stone, roofMat, glass, pavement, road, treeMat, trunkMat, brass;
   const geometries = {};
   const previews = {};
+  const architectureVisuals = [];
   let campusRoot, zone = null, indoor = null, outsideColliders, outsideVisuals, nearestObject = null, returnPoint, route = [];
   const interiors = {};
-  let surveying=false;
+  let surveying=false, fogBaseNear=260;
   const worldObjects = () => zone ? Exploration.objects(zone) : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+Exploration.regions[id].name,x,z,destination:id}))];
   function mesh(geo, material, x, y, z, parent = scene) { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; }
-  function box(w, h, d, material, x, y, z, parent) { return mesh(new THREE.BoxGeometry(w, h, d), material, x, y, z, parent); }
-  function cylinder(r, h, material, x, y, z, parent, count = 16) { return mesh(new THREE.CylinderGeometry(r, r, h, count), material, x, y, z, parent); }
-  function facade(color, isGlass) {
-    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-    const c = canvas.getContext('2d'); c.fillStyle = color; c.fillRect(0, 0, 256, 256);
-    for (let y = 20; y < 250; y += 52) for (let x = 14; x < 250; x += 31) {
-      c.fillStyle = '#b8c3bd'; c.fillRect(x - 2, y - 2, 22, 34); c.fillStyle = isGlass ? '#789e9a' : '#6a817c'; c.fillRect(x, y, 18, 29);
-      c.fillStyle = '#bed6c658'; c.fillRect(x + 2, y + 1, 6, 26); c.fillStyle = '#d3d6cb'; c.fillRect(x, y + 14, 18, 2);
-    }
-    const tex = new THREE.CanvasTexture(canvas); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 4;
-    const m = new THREE.MeshStandardMaterial({ map: tex, roughness: isGlass ? .3 : .8, metalness: isGlass ? .25 : 0, emissive: '#d5b974', emissiveIntensity: 0 }); windowMaterials.push(m); return m;
+  function box(w, h, d, material, x, y, z, parent) {
+    const geometry=new THREE.BoxGeometry(w,h,d);
+    if(material===pavement){const {position,normal,uv}=geometry.attributes;for(let i=0;i<position.count;i++)if(Math.abs(normal.getY(i))>.5)uv.setXY(i,(position.getX(i)+x)*.22,(position.getZ(i)+z)*.22);}
+    return mesh(geometry,material,x,y,z,parent);
   }
-  function building(x, z, w, d, h, style = 'brick') {
-    const front = facade(style === 'brick' ? '#a88470' : style === 'glass' ? '#66928c' : '#d5d3be', style === 'glass');
-    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
-    box(w + .7, .5, d + .7, stone, 0, .26, 0, g);
-    const main = box(w, h, d, [front, front, white, stone, front, front], 0, h / 2 + .5, 0, g);
-    box(w + .5, .28, d + .5, white, 0, h + .65, 0, g);
-    if (style === 'brick') {
-      const geo = new THREE.ConeGeometry(1, 2, 4); geo.rotateY(Math.PI / 4);
-      const r = mesh(geo, roofMat, 0, h + 1.7, 0, g); r.scale.set((w + 1) / Math.sqrt(2), 1, (d + 1) / Math.sqrt(2));
-    } else {
-      box(w * .65, .35, d * .58, style === 'glass' ? glass : stone, 0, h + 1, 0, g);
-      for (let i = -1; i <= 1; i++) box(1.3, .6, 1.3, stone, i * 2, h + 1.2, 0, g);
+  function cylinder(r, h, material, x, y, z, parent, count = 16) { return mesh(new THREE.CylinderGeometry(r, r, h, count), material, x, y, z, parent); }
+  function building(x,z,w,d,h,kind='dorm') {
+    const result=CampusBuildings.build(kind,{x,z,w,d,h});
+    scene.add(result.root);colliders.push(result.collider);
+    for(const material of result.windows)if(!windowMaterials.includes(material))windowMaterials.push(material);
+    const meshes=[];result.root.traverse(o=>{if(o.isMesh)meshes.push({object:o,original:o.material,ghost:null});});
+    architectureVisuals.push({root:result.root,meshes,faded:false,bounds:new THREE.Box3(new THREE.Vector3(x-w/2-.5,0,z-d/2-.5),new THREE.Vector3(x+w/2+.5,kind==='hall'?16.5:h+2.8,z+d/2+1.4))});
+    return result.root;
+  }
+  function updateOcclusion() {
+    const aim=player.group.position.clone().add(new THREE.Vector3(0,1.3,0)),direction=aim.clone().sub(camera.position),distance=direction.length();
+    const ray=new THREE.Ray(camera.position,direction.normalize()),hit=new THREE.Vector3();
+    for(const item of architectureVisuals)item.faded=mode==='walk'&&!zone&&!!ray.intersectBox(item.bounds,hit)&&camera.position.distanceTo(hit)<distance-.35;
+  }
+  function applyOcclusion(enabled) {
+    for(const item of architectureVisuals)for(const part of item.meshes){
+      if(enabled&&item.faded){
+        if(!part.ghost){part.ghost=part.original.clone();part.ghost.transparent=true;part.ghost.opacity=.14;part.ghost.depthWrite=false;}
+        part.ghost.emissiveIntensity=part.original.emissiveIntensity;part.object.material=part.ghost;
+      }else part.object.material=part.original;
     }
-    box(2.3, 2.2, .15, glass, 0, 1.6, d / 2 + .07, g); box(3, .2, 2, white, 0, 2.8, d / 2 + .8, g);
-    for (let i = 0; i < 3; i++) box(3.6, .15, .5, stone, 0, .12 + .15 * i, d / 2 + 1.65 - i * .5, g);
-    colliders.push({ x, z, w: w / 2 + .6, d: d / 2 + .6 }); return main;
   }
   function tree(x, z, scale = 1) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(scale); scene.add(g);
@@ -77,39 +76,24 @@ globalThis.Campus3D = (() => {
     const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color })); scene.add(l); return l;
   }
   function build() {
-    white = mat('#e1dec9'); stone = mat('#bcbfae'); roofMat = mat('#995c4e'); glass = mat('#467d7c', .25); pavement = mat('#c7c8b5'); road = mat('#748178'); treeMat = mat('#537953'); trunkMat = mat('#7a6551'); brass = mat('#3f4b43');
+    white = mat('#e7ece9'); stone = mat('#b5c0c1'); roofMat = mat('#996e67'); glass = mat('#548da2', .25); pavement = CampusBuildings.material('paving'); road = mat('#727d87'); treeMat = mat('#527d55'); trunkMat = mat('#7a6551'); brass = mat('#3f4b43');
     geometries.foliage = new THREE.IcosahedronGeometry(1.3, 1);
-    box(180, .3, 180, mat('#70856c'), 0, -.4, 0);
-    box(86, .25, 79, mat('#8fa077'), 0, -.1, 0);
+    box(180, .3, 180, mat('#719375'), 0, -.4, 0);
+    box(86, .25, 79, mat('#8daa79'), 0, -.1, 0);
     box(7, .12, 78, pavement, 0, .04, 0); box(82, .12, 5, pavement, 0, .04, 9); box(82, .12, 5, pavement, 0, .04, -8);
     box(4, .12, 68, pavement, -12, .04, -2); box(4, .12, 68, pavement, 14, .04, -2); box(4, .1, 68, pavement, 34, .04, -1);
     box(89, .08, 6, road, 0, .03, 39);
     for (let x = -41; x < 42; x += 4) box(2, .02, .14, white, x, .09, 39);
     building(-22, -15, 13, 7, 6.2); building(-25, -28, 16, 6, 6.7); building(-36, -16, 6, 12, 5.5);
-    if (!window.CLOCKTOWER_MESH) {
-    building(0, -23, 19, 7, 6.5, 'stone');
-    box(3.4, 13, 3.4, white, 0, 6.5, -20.7); box(4, .5, 4, stone, 0, 12.6, -20.7);
-    const towerRoof = mesh(new THREE.ConeGeometry(3.3, 2.3, 4), roofMat, 0, 14, -20.7); towerRoof.rotation.y = Math.PI / 4;
-    const clockCanvas = document.createElement('canvas'); clockCanvas.width = clockCanvas.height = 128; const cc = clockCanvas.getContext('2d'); cc.fillStyle = '#e9e5d0'; cc.fillRect(0, 0, 128, 128); cc.strokeStyle = '#34423e'; cc.lineWidth = 5; cc.beginPath(); cc.arc(64, 64, 52, 0, Math.PI * 2); cc.stroke(); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; cc.beginPath(); cc.moveTo(64 + Math.sin(a) * 42, 64 + Math.cos(a) * 42); cc.lineTo(64 + Math.sin(a) * 48, 64 + Math.cos(a) * 48); cc.stroke(); } cc.beginPath(); cc.moveTo(64, 26); cc.lineTo(64, 64); cc.lineTo(90, 78); cc.stroke();
-    const clockTex = new THREE.CanvasTexture(clockCanvas); clockTex.encoding = THREE.sRGBEncoding;
-    mesh(new THREE.PlaneGeometry(2.5, 2.5), new THREE.MeshStandardMaterial({ map: clockTex }), 0, 10.5, -18.97);
-    } else {
-      const landmark = new THREE.Group(); landmark.name = 'Blender_Clocktower'; landmark.position.set(0, 0, -23); scene.add(landmark);
-      for (const part of CLOCKTOWER_MESH) {
-        const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(part.positions, 3)); geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ color: new THREE.Color().fromArray(part.color), roughness: part.name.includes('glass') ? .25 : .75, metalness: part.name.includes('brass') ? .55 : 0 });
-        const object = new THREE.Mesh(geometry, material); object.name = part.name; object.castShadow = object.receiveShadow = true; landmark.add(object);
-      }
-      colliders.push({ x: 0, z: -23, w: 10.6, d: 4.4 });
-    }
-    building(24, -20, 17, 12, 8.2, 'glass'); building(24, 1, 14, 8, 5.8, 'stone'); building(34, 20, 8, 6, 4); building(24, 23, 9, 6, 3.8);
-    building(-35,-2,8,5,3.5,'stone'); building(-7,22,5,10,4.2,'stone'); building(-24,32,10,5,3.8);
+    building(0,-23,20,7.6,6.5,'hall');
+    building(24,-20,17,12,8.2,'library'); building(24,1,14,8,5.8,'lab'); building(34,20,8,6,4,'gate'); building(24,23,9,6,3.8,'gate');
+    building(-35,-2,8,5,3.5,'lake'); building(-7,22,5,10,4.2,'gym'); building(-24,32,10,5,3.8,'plaza');
     box(1, 5, 1, white, 20, 2.5, 33); box(1, 5, 1, white, 32, 2.5, 33); box(13, .9, 1.1, stone, 26, 4.6, 33);
     const signCanvas = document.createElement('canvas'); signCanvas.width = 512; signCanvas.height = 64; const sc = signCanvas.getContext('2d'); sc.fillStyle = '#c5c8b6'; sc.fillRect(0, 0, 512, 64); sc.fillStyle = '#374c40'; sc.font = '38px Microsoft YaHei'; sc.textAlign = 'center'; sc.fillText('江 城 大 学', 256, 46); const signTex = new THREE.CanvasTexture(signCanvas); signTex.encoding = THREE.sRGBEncoding; mesh(new THREE.PlaneGeometry(10, 1.25), new THREE.MeshStandardMaterial({ map: signTex }), 26, 4.55, 33.57);
     cylinder(6.5, .12, pavement, 0, .15, 1, scene, 64); cylinder(3.4, .65, stone, 0, .4, 1, scene, 48); cylinder(2.95, .18, glass, 0, .76, 1, scene, 48); cylinder(.5, 1.1, white, 0, 1.2, 1); cylinder(1.35, .2, stone, 0, 1.72, 1);
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const points = []; for (let j = 0; j <= 12; j++) { const f = j / 12; points.push([Math.cos(a) * f * 2.5, .8 + Math.sin(f * Math.PI) * 2, 1 + Math.sin(a) * f * 2.5]); } line(points, '#b9d9d6'); }
     const waterGeo = new THREE.CircleGeometry(12.4, 64, 0, Math.PI * 2); waterGeo.rotateX(-Math.PI / 2); waterBase = waterGeo.attributes.position.array.slice();
-    water = mesh(waterGeo, new THREE.MeshStandardMaterial({ color: '#4b9190', metalness: .45, roughness: .2, transparent: true, opacity: .94 }), -26, .06, 16); water.scale.z = 1.25; water.receiveShadow = true; water.castShadow = false;
+    water = mesh(waterGeo, new THREE.MeshStandardMaterial({ color: '#4b9190', metalness: .45, roughness: .2, transparent: true, opacity: .94 }), -26, .17, 16); water.scale.z = 1.25; water.receiveShadow = true; water.castShadow = false;
     const shore = mesh(new THREE.RingGeometry(12.4, 13, 64), stone, -26, .035, 16); shore.rotation.x = -Math.PI / 2; shore.scale.y = 1.25;
     box(22, .35, 2.2, white, -25, .55, 17);
     for (let i = -35; i <= -15; i += 2) { cylinder(.07, 1, brass, i, 1.1, 16); cylinder(.07, 1, brass, i, 1.1, 18); }
@@ -144,7 +128,7 @@ globalThis.Campus3D = (() => {
       scene = new THREE.Scene(); scene.background = new THREE.Color('#becdc5'); scene.fog = new THREE.Fog('#becdc5', 100, 185);
       camera = new THREE.PerspectiveCamera(42, 1, .2, 600);camera.layers.enable(1); miniCamera = new THREE.OrthographicCamera(-62, 47, 40, -40, .1, 180); miniCamera.position.set(0, 90, 0); miniCamera.up.set(0, 0, -1); miniCamera.lookAt(0, 0, 0);
       target = new THREE.Vector3(0, 0, 1); desiredTarget = target.clone();
-      hemi = new THREE.HemisphereLight('#edf1dc', '#647b65', 1.15); scene.add(hemi);
+      hemi = new THREE.HemisphereLight('#e3eeff', '#7f8973', 1.15); scene.add(hemi);
       sun = new THREE.DirectionalLight('#fff0cd', 2.4); sun.position.set(-30, 55, 30); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -55; sun.shadow.camera.right = 55; sun.shadow.camera.top = 55; sun.shadow.camera.bottom = -55; sun.shadow.camera.far = 150; sun.shadow.bias = -.0005; sun.shadow.normalBias = .035; scene.add(sun);
       build();
       campusRoot=new THREE.Group();campusRoot.name='Campus_Exterior';
@@ -158,8 +142,8 @@ globalThis.Campus3D = (() => {
   function setWeather(value) {
     if (!ready) return; weather = value; worldNight = worldState.night; for (const key of Object.keys(previews)) delete previews[key];
     const night = value === 'night' || value === 'rain' || value === 'auto' && worldNight, wet = value === 'rain' || value === 'auto' && worldNight;
-    scene.background.set(night ? '#394e49' : '#becdc5'); scene.fog.color.copy(scene.background); scene.fog.near = night ? 190 : 260; scene.fog.far = 450;
-    hemi.intensity = night ? .45 : .65; sun.intensity = night ? .35 : 1.15; sun.color.set(night ? '#b2d4d6' : '#fff0cd'); renderer.toneMappingExposure = night ? .8 : .85;
+    scene.background.set(night ? '#394752' : '#c7dce3'); scene.fog.color.copy(scene.background); fogBaseNear=night?190:260; scene.fog.near=fogBaseNear; scene.fog.far = 450;
+    hemi.intensity = night ? .45 : .85; sun.intensity = night ? .35 : 1.6; sun.color.set(night ? '#b2ccd9' : '#fff6e9'); renderer.toneMappingExposure = night ? .8 : .96;
     rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 3 : .2; for (const m of windowMaterials) m.emissiveIntensity = night ? .24 : 0;
     water.material.roughness = wet ? .12 : .25; hooks.weather?.(night, wet); return { night, wet };
   }
@@ -183,13 +167,14 @@ globalThis.Campus3D = (() => {
     document.body.classList.remove('inside');hooks.zone?.(null);hooks.object?.(null);return true;
   }
   function interact() { if(active&&mode==='walk'&&nearestObject)hooks.interact?.(nearestObject); }
-  function surveyRadius() { return zone ? Math.max(62,42/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect)) : (host.clientWidth<800?225:112); }
+  function overviewRadius() { return Math.max(112,55/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+30); }
+  function surveyRadius() { return zone ? Math.max(62,42/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect)) : overviewRadius(); }
   function survey() { surveying=!surveying;radius=surveying?surveyRadius():(zone?31:27);pitch=surveying?1.18:(zone?1.03:.88);yaw=0; }
   function setMode(next, place = currentPlace) {
     if(zone)exitInterior();surveying=false;
     if (!ready || !entries[place] || !['walk', 'overview'].includes(next)) return; mode = next; pressed.clear(); travel = null; ringTarget.visible = false; near = null; currentPlace = place;
     if (next === 'walk') { const e = entries[place],spawn=[[e[0],e[1]+3],[e[0],e[1]+1],[e[0]+3,e[1]],e].find(([x,z])=>clearAt(x,z))||e; player.group.position.set(spawn[0],0,spawn[1]); desiredTarget.copy(player.group.position); radius = 27; yaw = .1; pitch = .88; }
-    else { desiredTarget.set(0, 0, -1); radius = host.clientWidth < 800 ? 225 : 112; yaw = .08; pitch = .92; }
+    else { desiredTarget.set(host.clientWidth<800?-7:0,0,-1); radius=overviewRadius(); yaw = .08; pitch = .92; }
     player.group.visible = next === 'walk'; document.body.classList.toggle('walking', next === 'walk'); hooks.mode?.(next); resize();
   }
   function rayPoint(event) {
@@ -233,7 +218,7 @@ globalThis.Campus3D = (() => {
       if (pointer && !pointer.moved) { const p = rayPoint(e); if (p) { if (mode === 'walk') moveTo(p.x, p.z); else { const best = Object.entries(coords).sort((a, b) => Math.hypot(a[1][0] - p.x, a[1][1] - p.z) - Math.hypot(b[1][0] - p.x, b[1][1] - p.z))[0]; if (Math.hypot(best[1][0] - p.x, best[1][1] - p.z) < 12) hooks.select(best[0]); } } } pointer = null;
     });
     canvas.addEventListener('pointercancel', () => pointer = null);
-    canvas.addEventListener('wheel', e => { e.preventDefault(); radius = THREE.MathUtils.clamp(radius + e.deltaY * .04, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : 260); }, { passive: false });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); radius = THREE.MathUtils.clamp(radius + e.deltaY * .04, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())); }, { passive: false });
     document.addEventListener('keydown', e => { if (!active || !keysEnabled || mode !== 'walk' || document.querySelector('dialog[open]') || document.getElementById('cinema')?.hidden === false || /INPUT|TEXTAREA/.test(e.target.tagName)) return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyE'].includes(e.code)) { e.preventDefault(); if (e.code === 'KeyE') { if(!e.repeat)interact(); } else { pressed.add(e.code); travel = null;route=[]; } } });
     document.addEventListener('keyup', e => pressed.delete(e.code)); window.addEventListener('blur', () => pressed.clear()); window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', () => { if (document.hidden) pressed.clear(); });
@@ -241,6 +226,7 @@ globalThis.Campus3D = (() => {
   function resize() {
     if (!ready) return; const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
     if(surveying)radius=surveyRadius();
+    else if(mode==='overview'){radius=overviewRadius();desiredTarget.set(host.clientWidth<800?-7:0,0,-1);}
     const frame = document.getElementById('mini-frame')?.getBoundingClientRect(), bounds = host.getBoundingClientRect();
     miniRect = frame && frame.width ? { x: frame.left - bounds.left + 2, y: h - (frame.bottom - bounds.top) + 2, width: frame.width - 4, height: frame.height - 4 } : { x: w - 218, y: h - 320, width: 188, height: 140 };
   }
@@ -275,7 +261,7 @@ globalThis.Campus3D = (() => {
     if (!active || document.hidden || !ready) return; elapsed += dt;
     const playing = document.getElementById('cinema')?.hidden === false || document.querySelector('dialog[open]');
     if (mode === 'walk' && !playing) stepPlayer(dt);
-    if(surveying)desiredTarget.set(0,0,0);
+    if(surveying)desiredTarget.set(!zone&&host.clientWidth<800?-7:0,0,0);
     target.lerp(desiredTarget, Math.min(1, dt * 5));
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * radius, target.y + Math.sin(pitch) * radius, target.z + Math.cos(yaw) * Math.cos(pitch) * radius); camera.lookAt(target);
     if (worldState.motion) {
@@ -285,12 +271,15 @@ globalThis.Campus3D = (() => {
       for (const m of Object.values(markers)) m.material.opacity = .65 + Math.sin(elapsed * 2) * .25;
       if (rain.visible) { for (let i = 0; i < 500; i++) { const k = i * 6; rainPositions[k + 1] -= dt * 20; if (rainPositions[k + 1] < 0) rainPositions[k + 1] = 28; rainPositions[k + 4] = rainPositions[k + 1] + 1.2; } rainGeometry.attributes.position.needsUpdate = true; }
     }
+    scene.fog.near=Math.max(fogBaseNear,radius+70);scene.fog.far=Math.max(450,scene.fog.near+190);
+    updateOcclusion();applyOcclusion(true);
     const w = host.clientWidth, h = host.clientHeight; renderer.setScissorTest(false); renderer.setViewport(0, 0, w, h); renderer.render(scene, camera);
+    applyOcclusion(false);
     if (mode === 'walk') { const r = miniRect; renderer.setScissorTest(true); renderer.setScissor(r.x, r.y, r.width, r.height); renderer.setViewport(r.x, r.y, r.width, r.height); player.group.scale.setScalar(3); renderer.render(scene, miniCamera); player.group.scale.setScalar(1); renderer.setScissorTest(false); }
     for (const b of document.querySelectorAll('#pins-3d [data-place]')) {
       const id = b.dataset.place, e = entries[id], p = new THREE.Vector3(e[0], mode === 'walk' ? 2.8 : 2, e[1]); p.project(camera);
       b.style.left = `${(p.x * .5 + .5) * w}px`; b.style.top = `${(-p.y * .5 + .5) * h}px`; b.hidden = !!zone || p.z > 1 || p.x < -.95 || p.x > .95 || p.y < -.95 || p.y > .9 || mode === 'walk' && Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) > 22;
     }
   }
-  return { init, update, preview, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : 260), reset: () => zone?enterInterior(zone):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
+  return { init, update, preview, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())), reset: () => zone?enterInterior(zone):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), target: target?.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, architecture: campusRoot?.children.filter(o=>o.name.startsWith('Architecture_')).map(o=>({...o.userData,batches:o.children.length})), render: {...renderer?.info.render}, waterHeight: water?.position.y, fog: {near:scene?.fog.near,far:scene?.fog.far}, occluded: architectureVisuals.filter(o=>o.faded).map(o=>o.root.name), frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
 })();
