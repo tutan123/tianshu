@@ -189,8 +189,8 @@
       MiniGames.start(n.kind, $('encounter'), state, { save, hud, toast, icons, sound, finish: complete }); return;
     }
     $('encounter').innerHTML = `<div class="eyebrow">${icon('git-branch')} 命运分歧</div><h2>${n.question}</h2><p>天枢等待你的决定。</p>${n.choices.map((c, i) => {
-      const locked = c.needFlag && !state.flags.includes(c.needFlag), poor = c.cost && state.stats.compute < c.cost;
-      return `<button class="choice" data-choice="${i}" ${locked || poor ? 'disabled' : ''}><span class="choice-index">0${i + 1}</span><span><strong>${c.text}</strong><small>${locked ? '未取得完整修改记录' : poor ? '算力不足 · 需要 ' + c.cost : c.hint}</small></span>${icon(locked ? 'lock-keyhole' : 'arrow-up-right')}</button>`;
+      const { locked, poor } = TS.choiceState(state, a.id, i);
+      return `<button class="choice" data-choice="${i}" ${locked || poor ? 'disabled' : ''}><span class="choice-index">0${i + 1}</span><span><strong>${c.text}</strong><small>${locked ? (c.lockedHint || '尚未取得所需证据') : poor ? '算力不足 · 需要 ' + c.cost : c.hint}</small></span>${icon(locked ? 'lock-keyhole' : 'arrow-up-right')}</button>`;
     }).join('')}`;
     $('encounter').querySelectorAll('[data-choice]').forEach(b => b.addEventListener('click', () => {
       if (!TS.choose(state, a.id, Number(b.dataset.choice))) return;

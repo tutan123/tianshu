@@ -26,3 +26,16 @@ test('mid-arcade saves restore after legacy migration and reject malformed encou
   }
   s.active.game.round=999;assert.equal(TS.restore(JSON.stringify(s)),null);
 });
+test('salvage save bounds follow the item table instead of frozen literals',()=>{
+  const {Arcade:A,RPG}=load();
+  const older={...A.create('salvage',{time:6}),remaining:51};
+  assert.ok(A.valid(older),'an existing save must keep validating');
+  // Adding a stronger reel-time item has to widen the accepted range. When the
+  // bound was the literal 60, this item would have rejected every in-progress save.
+  RPG.items.chip.bonus.time=30;
+  const widened={...A.create('salvage',{time:RPG.limits().time}),remaining:45+RPG.limits().time};
+  assert.equal(RPG.limits().time,30);
+  assert.ok(A.valid(widened),'a newly legal window must validate');
+  assert.ok(A.valid(older),'older saves must survive the new item table');
+  assert.equal(A.valid({...widened,remaining:999}),false,'an impossible window is still rejected');
+});

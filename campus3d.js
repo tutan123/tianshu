@@ -4,7 +4,7 @@ globalThis.Campus3D = (() => {
   const entries = { dorm: [-22, -8], hall: [0, -14], library: [23, -10], lake: [-35, 2], gym: [-6, 29], lab: [24, 10], gate: [26, 28], plaza: [-24, 36] };
   let scene, renderer, camera, miniCamera, host, hooks, sun, hemi, water, player, scan, rain, ringTarget, lamps = [], markers = {}, colliders = [];
   let mode = 'overview', active = true, weather = 'auto', worldNight = false, yaw = .08, pitch = .84, radius = 96, target, desiredTarget, last = 0, elapsed = 0, currentPlace = 'dorm', pointer = null, travel = null, pressed = new Set(), ready = false, near = null;
-  let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect, keysEnabled = true;
+  let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect;
   const T = () => window.THREE;
   const mat = (c, roughness = .85) => new THREE.MeshStandardMaterial({ color: c, roughness });
   let white, stone, roofMat, glass, pavement, road, treeMat, trunkMat, brass;
@@ -240,7 +240,7 @@ globalThis.Campus3D = (() => {
     });
     canvas.addEventListener('pointercancel', () => pointer = null);
     canvas.addEventListener('wheel', e => { e.preventDefault(); radius = THREE.MathUtils.clamp(radius + e.deltaY * .04, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())); }, { passive: false });
-    document.addEventListener('keydown', e => { if (!active || !keysEnabled || mode !== 'walk' || document.querySelector('dialog[open]') || document.getElementById('cinema')?.hidden === false || /INPUT|TEXTAREA/.test(e.target.tagName)) return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyE'].includes(e.code)) { e.preventDefault(); if (e.code === 'KeyE') { if(!e.repeat)interact(); } else { pressed.add(e.code); travel = null;route=[]; } } });
+    document.addEventListener('keydown', e => { if (!active || mode !== 'walk' || document.querySelector('dialog[open]') || document.getElementById('cinema')?.hidden === false || /INPUT|TEXTAREA/.test(e.target.tagName)) return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyE'].includes(e.code)) { e.preventDefault(); if (e.code === 'KeyE') { if(!e.repeat)interact(); } else { pressed.add(e.code); travel = null;route=[]; } } });
     document.addEventListener('keyup', e => pressed.delete(e.code)); window.addEventListener('blur', () => pressed.clear()); window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', () => { if (document.hidden) pressed.clear(); });
   }

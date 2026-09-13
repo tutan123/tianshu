@@ -104,8 +104,8 @@ globalThis.Exploration = (() => {
       if (w.opened.includes(id)) return { ok:false, text:'箱子已经空了，收获已放进行囊。' };
       if (o.requires && !w.switches.includes(o.requires)) return { ok:false, text:'电子锁没有供电。仪器室的配电开关或许能让它重新工作。' };
       w.opened.push(id); TS.effect(s,{cash:o.cash}); RPG.xp(s,o.xp);
-      if (RPG.ensure(s).bag.coffee < 9) RPG.ensure(s).bag.coffee++;
-      return { ok:true, reward:true, text:`获得 ¥${o.cash}、${o.xp} EXP，以及冰咖啡一杯（行囊上限 9）。` };
+      const bag=RPG.ensure(s).bag, drink=bag.coffee<9; if(drink)bag.coffee++;
+      return { ok:true, reward:true, text:`获得 ¥${o.cash}、${o.xp} EXP${drink?'，以及冰咖啡一杯（行囊上限 9）':'。行囊里的冰咖啡已经满了（9 杯），这一杯留在了箱子里'}` };
     }
     if (o.type === 'stamp') {
       if (w.stamps.includes(o.zone)) return { ok:false, text:`这枚印章已经收集。校史印章 ${w.stamps.length} / 8。` };

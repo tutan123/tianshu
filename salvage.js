@@ -8,15 +8,24 @@ globalThis.Arcade = (() => {
     { name: '废主机', value: 5, weight: 3.8, color: '#798587', radius: 29 }
   ];
   let host, state, hooks, g, bodies = [], canvas, ctx, stopped = true;
+  // Salvage tuning. valid() derives its bounds from these same values, so a
+  // stronger reel-time or value item can never turn an in-progress save into a
+  // rejected one for the player.
+  const ITEM_LAYOUT = [0, 2, 3, 1, 1, 0, 2, 3, 0, 3, 1, 0];
+  const BASE_SECONDS = 45, TIME_SLACK = 5, ELAPSED_LIMIT = 200, ANGLE_LIMIT = 1.2;
+  const MIN_LENGTH = 28, OUT_LENGTH = 455, LENGTH_SLACK = 5;
+  const MAX_SCORE_SLACK = 50, MEMORY_SCORE_LIMIT = 120, MEMORY_TIMER_LIMIT = 20;
+  const maxSeconds = () => BASE_SECONDS + (globalThis.RPG?.limits?.().time || 0) + TIME_SLACK;
+  const maxScore = () => Math.ceil(ITEM_LAYOUT.reduce((sum, type) => sum + types[type].value, 0) * (1 + (globalThis.RPG?.limits?.().value || 0))) + MAX_SCORE_SLACK;
   function create(kind, bonus = {}) {
     if (kind === 'memory') return { kind, round: 0, cursor: 0, mistakes: 0, score: 0, phase: 'ready', timer: 0, assisted: false };
-    return { kind, phase: 'ready', remaining: 45 + (bonus.time || 0), score: 0, elapsed: 0, angle: -.9, length: 28, caught: null, flash: '', items: Array.from({ length: 12 }, (_, i) => ({ id: i, type: [0, 2, 3, 1, 1, 0, 2, 3, 0, 3, 1, 0][i], x: 82 + (i % 4) * 155 + (i > 7 ? 12 : 0), y: 185 + Math.floor(i / 4) * 104, collected: false })) };
+    return { kind, phase: 'ready', remaining: BASE_SECONDS + (bonus.time || 0), score: 0, elapsed: 0, angle: -.9, length: MIN_LENGTH, caught: null, flash: '', items: Array.from({ length: 12 }, (_, i) => ({ id: i, type: ITEM_LAYOUT[i], x: 82 + (i % 4) * 155 + (i > 7 ? 12 : 0), y: 185 + Math.floor(i / 4) * 104, collected: false })) };
   }
   function valid(v) {
     if (!v || !['salvage', 'memory'].includes(v.kind)) return false;
     const num = (k, lo, hi) => Number.isFinite(v[k]) && v[k] >= lo && v[k] <= hi;
-    if (v.kind === 'memory') return Number.isInteger(v.round) && num('round', 0, 2) && Number.isInteger(v.cursor) && num('cursor', 0, 5) && Number.isInteger(v.mistakes) && num('mistakes', 0, 2) && num('score', 0, 120) && ['ready', 'show', 'input'].includes(v.phase) && num('timer', 0, 20) && typeof v.assisted === 'boolean';
-    return ['ready', 'swing', 'out', 'back'].includes(v.phase) && num('remaining', 0, 60) && num('score', 0, 2000) && num('elapsed', 0, 200) && num('angle', -1.2, 1.2) && num('length', 0, 490) && typeof v.flash === 'string' && v.flash.length <= 100 && (v.caught === null || Number.isInteger(v.caught) && v.caught >= 0 && v.caught < 12) && Array.isArray(v.items) && v.items.length === 12 && v.items.every((p, i) => p.id === i && Number.isInteger(p.type) && p.type >= 0 && p.type < types.length && Number.isFinite(p.x) && p.x >= 30 && p.x <= 610 && Number.isFinite(p.y) && p.y >= 100 && p.y <= 420 && typeof p.collected === 'boolean');
+    if (v.kind === 'memory') return Number.isInteger(v.round) && num('round', 0, 2) && Number.isInteger(v.cursor) && num('cursor', 0, 5) && Number.isInteger(v.mistakes) && num('mistakes', 0, 2) && num('score', 0, MEMORY_SCORE_LIMIT) && ['ready', 'show', 'input'].includes(v.phase) && num('timer', 0, MEMORY_TIMER_LIMIT) && typeof v.assisted === 'boolean';
+    return ['ready', 'swing', 'out', 'back'].includes(v.phase) && num('remaining', 0, maxSeconds()) && num('score', 0, maxScore()) && num('elapsed', 0, ELAPSED_LIMIT) && num('angle', -ANGLE_LIMIT, ANGLE_LIMIT) && num('length', 0, OUT_LENGTH + LENGTH_SLACK) && typeof v.flash === 'string' && v.flash.length <= 100 && (v.caught === null || Number.isInteger(v.caught) && v.caught >= 0 && v.caught < 12) && Array.isArray(v.items) && v.items.length === 12 && v.items.every((p, i) => p.id === i && Number.isInteger(p.type) && p.type >= 0 && p.type < types.length && Number.isFinite(p.x) && p.x >= 30 && p.x <= 610 && Number.isFinite(p.y) && p.y >= 100 && p.y <= 420 && typeof p.collected === 'boolean');
   }
   function point(v) { return { x: 320 + Math.sin(v.angle) * v.length, y: 40 + Math.cos(v.angle) * v.length }; }
   function step(v, dt, bonus, collisionBodies) {
@@ -28,14 +37,14 @@ globalThis.Arcade = (() => {
         v.length += Math.min(.01, dt - t) * 330;
         const p = point(v), hit = Matter.Query.point(collisionBodies.filter(b => !v.items[b.plugin.index].collected), p)[0];
         if (hit) { v.caught = hit.plugin.index; v.phase = 'back'; v.flash = types[v.items[v.caught].type].name; break; }
-        if (v.length > 455 || p.x < 20 || p.x > 620 || p.y > 435) { v.phase = 'back'; break; }
+        if (v.length > OUT_LENGTH || p.x < 20 || p.x > 620 || p.y > 435) { v.phase = 'back'; break; }
       }
     } else if (v.phase === 'back') {
       const weight = v.caught === null ? 1 : types[v.items[v.caught].type].weight;
       v.length -= dt * 300 * (1 + (bonus.reel || 0)) / weight;
-      if (v.length <= 28) {
+      if (v.length <= MIN_LENGTH) {
         if (v.caught !== null) { const item = v.items[v.caught], gain = Math.round(types[item.type].value * (1 + (bonus.value || 0))); item.collected = true; v.score += gain; v.flash = '+' + gain + ' 回收价值'; }
-        v.caught = null; v.length = 28; v.phase = 'swing';
+        v.caught = null; v.length = MIN_LENGTH; v.phase = 'swing';
       }
     }
     return v.score >= 250 ? 'success' : v.remaining <= 0 ? 'fail' : null;

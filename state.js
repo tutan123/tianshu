@@ -21,7 +21,13 @@ globalThis.TS = (() => {
     s.modules[id]++; return true;
   }
   function ending(s) {
-    if (s.flags.includes('evidence') && s.flags.includes('public')) return { id: 'dawn', title: '破晓之人', tag: '真相路线', text: '被提前写好的名单终于作废。你没有成为下一个安排结果的人，而是把选择还给了每一个人。顾清河把实验室的钥匙交给你：“这次，试着走得比我远。”' };
+    // A receipt demands the same re-vote a full log does; only the reveal differs.
+    // Requiring 'evidence' alone here made one mistimed circuit lock this ending out.
+    if (s.flags.includes('public') && (s.flags.includes('evidence') || s.flags.includes('receipt'))) {
+      return s.flags.includes('evidence')
+        ? { id: 'dawn', title: '破晓之人', tag: '真相路线', text: '被提前写好的名单终于作废。你没有成为下一个安排结果的人，而是把选择还给了每一个人。顾清河把实验室的钥匙交给你：“这次，试着走得比我远。”' }
+        : { id: 'dawn', title: '破晓之人', tag: '真相路线', text: '申请表上的回执不足以指认是谁动的手，但足以让评审重新表决。名单作废了。顾清河把实验室的钥匙放在你手里：“证据还能补。先把门打开。”' };
+    }
     if (s.bonds.lw + s.bonds.sq >= 50) return { id: 'together', title: '同路之人', tag: '羁绊路线', text: '你的作品拿了第一，但更值得记住的，是饭桌上多出来的两副碗筷。林晚把那片银杏叶夹进你的笔记本。天枢写下一条无法量化的记录：这一次，宿主不再独行。' };
     return { id: 'restart', title: '命运的变量', tag: '自我路线', text: '七年前你从这里低着头走过。今天，你带着第一个作品、第一个机会，以及一个尚未解开的秘密，再次站到起点。天枢问你下一步做什么。你说：“让我自己想想。”' };
   }
@@ -47,23 +53,36 @@ globalThis.TS = (() => {
     if (!msg || msg.reply !== null || !data?.replies[index]) return false;
     msg.reply = index; msg.read = true; effect(s, data.replies[index].fx); return true;
   }
+  // Why a choice is or is not selectable. The renderer calls this too, so the
+  // disabled button and the rule that enforces it can never disagree.
+  function choiceState(s, id, index) {
+    const c = CONTENT.nodes[id]?.choices?.[index];
+    if (!c) return { selectable: false, locked: true, poor: false };
+    const locked = (!!c.needFlag && !s.flags.includes(c.needFlag)) || (!!c.needFlagAny && !c.needFlagAny.some(flag => s.flags.includes(flag)));
+    const poor = !!c.cost && s.stats.compute < c.cost;
+    const selectable = available(s).includes(id) && !Object.hasOwn(s.choices, id) && !locked && !poor;
+    return { selectable, locked, poor };
+  }
   function choose(s, id, index) {
-    const n = CONTENT.nodes[id], c = n?.choices?.[index];
-    if (!c || !available(s).includes(id) || Object.hasOwn(s.choices, id)) return false;
-    if (c.needFlag && !s.flags.includes(c.needFlag)) return false;
-    if (c.cost && s.stats.compute < c.cost) return false;
+    const c = CONTENT.nodes[id]?.choices?.[index];
+    if (!c || !choiceState(s, id, index).selectable) return false;
     effect(s, c.fx); s.choices[id] = index; return true;
   }
+  // Encounter bounds come from the modules that own the tuning, never from
+  // literals here: a raised enemy or a stronger item must not invalidate saves.
+  // The legacy values stay accepted so saves written by older builds still load.
+  const ENCOUNTER_DEFAULTS = { quizSeconds: 60, qteSeconds: 14, enemyHp: 85 };
+  const encounterLimit = key => globalThis.MiniGames?.limits?.[key] ?? ENCOUNTER_DEFAULTS[key];
   function validEncounter(g, kind) {
     if (g === null || g === undefined) return true;
     if (typeof g !== 'object' || g.kind !== kind || g.finished === true) return false;
     if (['salvage', 'memory'].includes(kind)) return !!globalThis.Arcade?.valid(g);
     const number = (key, min, max) => Number.isFinite(g[key]) && g[key] >= min && g[key] <= max;
     const integer = (key, min, max) => Number.isInteger(g[key]) && number(key, min, max);
-    if (kind === 'quiz') return integer('index', 0, CONTENT.quiz.length - 1) && integer('score', 0, CONTENT.quiz.length) && number('remaining', -.1, 60) && (g.answered === null || Number.isInteger(g.answered) && g.answered >= -1 && g.answered < CONTENT.quiz[g.index].options.length) && typeof g.assisted === 'boolean';
-    if (kind === 'qte') return typeof g.running === 'boolean' && number('elapsed', 0, 14.1) && number('position', 0, 1) && [null, 'success', 'perfect', 'fail'].includes(g.result);
+    if (kind === 'quiz') return integer('index', 0, CONTENT.quiz.length - 1) && integer('score', 0, CONTENT.quiz.length) && number('remaining', -.1, Math.max(encounterLimit('quizSeconds'), ENCOUNTER_DEFAULTS.quizSeconds)) && (g.answered === null || Number.isInteger(g.answered) && g.answered >= -1 && g.answered < CONTENT.quiz[g.index].options.length) && typeof g.assisted === 'boolean';
+    if (kind === 'qte') return typeof g.running === 'boolean' && number('elapsed', 0, encounterLimit('qteSeconds') + .1) && number('position', 0, 1) && [null, 'success', 'perfect', 'fail'].includes(g.result);
     if (kind === 'circuit') return Array.isArray(g.angles) && g.angles.length === 3 && g.angles.every(a => Number.isInteger(a) && a >= 0 && a <= 3) && integer('moves', 0, 1000000) && typeof g.hint === 'boolean';
-    if (kind === 'combat') return integer('maxHp', 1, 1000000) && integer('hp', 1, g.maxHp) && g.maxEnemy === 85 && integer('enemy', 1, 85) && integer('turn', 1, 1000000) && integer('energy', 0, 5) && ['block', 'shield', 'boost'].every(k => integer(k, 0, 1000000)) && typeof g.reveal === 'boolean' && typeof g.log === 'string' && g.log.length <= 2000 && (g.assistedTurn === undefined || integer('assistedTurn', 1, g.turn));
+    if (kind === 'combat') { const enemyHp = encounterLimit('enemyHp'), maxEnergy = 3 + 1 + 1; return integer('maxHp', 1, 1000000) && integer('hp', 1, g.maxHp) && [enemyHp, ENCOUNTER_DEFAULTS.enemyHp].includes(g.maxEnemy) && integer('enemy', 1, enemyHp) && integer('turn', 1, 1000000) && integer('energy', 0, maxEnergy) && ['block', 'shield', 'boost'].every(k => integer(k, 0, 1000000)) && typeof g.reveal === 'boolean' && typeof g.log === 'string' && g.log.length <= 2000 && (g.assistedTurn === undefined || integer('assistedTurn', 1, g.turn)); }
     return false;
   }
   function restore(raw) {
@@ -101,5 +120,5 @@ globalThis.TS = (() => {
       return s;
     } catch { return null; }
   }
-  return { fresh, available, effect, spend, upgrade, ending, complete, reply, choose, restore, clamp };
+  return { fresh, available, effect, spend, upgrade, ending, complete, reply, choose, choiceState, restore, clamp };
 })();

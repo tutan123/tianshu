@@ -30,6 +30,22 @@ globalThis.RPG = (() => {
     for (const id of Object.values(ensure(s).equipped)) for (const [key, value] of Object.entries(items[id]?.bonus || {})) out[key] += value;
     return out;
   }
+  // Largest bonus a legal loadout can reach, derived from the item table rather
+  // than hard-coded. Save validation uses this so adding a stronger item can
+  // never silently turn existing saves into "corrupt save" for the player.
+  function limits() {
+    const out = {};
+    const equippedSlots = [...new Set(Object.values(items).filter(item => item.slot).map(item => item.slot))];
+    for (const slot of equippedSlots) {
+      const best = {};
+      for (const item of Object.values(items)) {
+        if (item.slot !== slot || !item.bonus) continue;
+        for (const [key, value] of Object.entries(item.bonus)) best[key] = Math.max(best[key] ?? 0, value);
+      }
+      for (const [key, value] of Object.entries(best)) out[key] = (out[key] ?? 0) + value;
+    }
+    return out;
+  }
   function profile(s) {
     const r = ensure(s), lv = level(s), bonuses = bonus(s);
     const maxHp = 65 + Math.floor(s.stats.physique / 2) + bonuses.hp;
@@ -99,5 +115,5 @@ globalThis.RPG = (() => {
     if (globalThis.Exploration) { r.world = Exploration.validate(r.world); if (!r.world) return null; }
     return r;
   }
-  return { items, finds, slots, fresh, ensure, level, xp, bonus, profile, inventory, compare, usePreview, buy, equip, use, discover, reward, validate };
+  return { items, finds, slots, fresh, ensure, level, xp, bonus, limits, profile, inventory, compare, usePreview, buy, equip, use, discover, reward, validate };
 })();

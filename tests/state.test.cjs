@@ -76,6 +76,38 @@ test('choices set persistent route flags and all three endings are reachable', (
   assert.equal(T.ending(ally).id, 'together');
   assert.equal(T.ending(T.fresh()).id, 'restart');
 });
+test('failing the lab puzzle still leaves every ending reachable', () => {
+  const T = api(), C = ctx.CONTENT;
+  // 'lab' is the only source of the 'evidence' flag and cannot be replayed, so a
+  // single mistimed circuit used to lock the public route out for the whole run.
+  const failed = T.fresh();
+  for (const id of C.main) {
+    if (id === 'hearing') {
+      assert.equal(failed.flags.includes('evidence'), false, 'a failed lab must not grant evidence');
+      assert.ok(failed.flags.includes('receipt'), 'a failed lab grants the receipt instead');
+      const state = T.choiceState(failed, 'hearing', 0);
+      assert.equal(state.selectable, true, 'the public route must stay selectable with only a receipt');
+      assert.equal(T.choose(failed, 'hearing', 0), true);
+    }
+    T.complete(failed, id, id === 'lab' ? 'fail' : 'success');
+  }
+  assert.ok(failed.flags.includes('public'));
+  assert.equal(T.ending(failed).id, 'dawn', 'dawn must be reachable from the receipt route');
+
+  const passed = T.fresh();
+  for (const id of C.main) {
+    if (id === 'hearing') assert.equal(T.choose(passed, 'hearing', 0), true, 'the full-evidence route must still work');
+    T.complete(passed, id, 'success');
+  }
+  assert.ok(passed.flags.includes('evidence'));
+  assert.equal(passed.ending.id, 'dawn');
+
+  const bare = T.fresh();
+  for (const id of C.main) { if (id === 'hearing') break; T.complete(bare, id, 'success'); }
+  bare.flags = bare.flags.filter(flag => flag !== 'evidence' && flag !== 'receipt');
+  assert.equal(T.choiceState(bare, 'hearing', 0).selectable, false, 'without either record the route stays locked');
+  assert.equal(T.choose(bare, 'hearing', 0), false);
+});
 test('resume preserves paid assistance and progress for every encounter kind', () => {
   const games = {
     math: { kind: 'quiz', index: 1, score: 1, remaining: 12.5, answered: null, assisted: true },
