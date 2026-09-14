@@ -60,7 +60,7 @@ globalThis.Exploration = (() => {
     { id: 'dorm-west-door', type: 'door', name: '进入宿舍西楼', x: -36, z: -8.5, destination: 'dorm' },
     { id: 'gate-east-door', type: 'door', name: '进入维修铺东间', x: 34, z: 24.4, destination: 'gate' }
   ];
-  const all = () => [...outdoor, ...Object.keys(regions).flatMap(objects)];
+  const all = () => [...outdoor, ...Object.keys(regions).flatMap(objects),...(globalThis.CampusRooms?.allObjects()||[])];
   const fresh = () => ({ opened: [], stamps: [], talked: [], switches: [], visited: [], claimed: false });
   function ensure(s) { return RPG.ensure(s).world ||= fresh(); }
   // Frozen snapshot of every interaction id that has ever been legal, grouped by the
@@ -105,7 +105,7 @@ globalThis.Exploration = (() => {
         : key === 'talked' ? ids(['npc', 'note'])
           : key === 'switches' ? ids(['switch', 'puzzle'])
             : [];
-    return new Set([...HISTORICAL_IDS[key], ...current]);
+    return new Set([...HISTORICAL_IDS[key],...(globalThis.CampusRooms?.historical[key]||[]), ...current]);
   }
   function validate(w) {
     if (!w) return fresh();
@@ -124,7 +124,7 @@ globalThis.Exploration = (() => {
       return {id:zone+'-investigation',title:q.title,zone,description:q.description,steps,complete:w.opened.includes(zone+'-task'),reward:`¥${q.cash} · ${q.xp} EXP · 学习笔记 ×1`,objectiveId:zone+'-task'};
     });
   }
-  function evidence(s){const w=ensure(s);return Object.entries(investigations).filter(([zone])=>w.talked.includes(zone+'-note')).map(([zone,q])=>({id:zone+'-note',name:q.clue,desc:q.text,icon:'file-search'}));}
+  function evidence(s){const w=ensure(s);return [...Object.entries(investigations).filter(([zone])=>w.talked.includes(zone+'-note')).map(([zone,q])=>({id:zone+'-note',name:q.clue,desc:q.text,icon:'file-search'})),...(globalThis.CampusRooms?.allObjects()||[]).filter(o=>o.type==='note'&&w.talked.includes(o.id)).map(o=>({id:o.id,name:o.name,desc:o.text,icon:'file-search'}))];}
   function act(s, id, choice) {
     const o = all().find(o=>o.id===id), w = ensure(s);
     if (!o || s.active) return { ok:false, text:'现在无法调查。' };

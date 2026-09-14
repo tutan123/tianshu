@@ -68,6 +68,11 @@ globalThis.WorldArt = (() => {
         box(g,.8,.9,.8,'#71868a',0,.6,0);box(g,.4,.17,.4,o.type==='stamp'?'#e1ad62':'#89c5d5',0,1.15,0);
       }else if(o.type==='switch'){
         box(g,.9,1.4,.4,'#5e7880',0,.85,0);box(g,.2,.5,.15,'#d58462',0,1.15,.3);
+      }else if(o.type==='stairs'){
+        for(let i=0;i<6;i++)box(g,2,.18*(i+1),.43,'#8b9ba7',0,.22+.09*(i+1),.9-i*.4);
+        for(const x of[-1.1,1.1]){box(g,.08,1.8,.08,'#536d7f',x,1,-1.1);box(g,.08,1,.08,'#536d7f',x,.7,1);}
+      }else if(o.type==='shop'){
+        box(g,2.6,1.1,1,'#719a91',0,.75,0);box(g,2.8,.1,1.15,'#e0d6bc',0,1.34,0);asset(g,'computerScreen',.65,1.4,0,.5);
       }else if(o.type==='puzzle'){
         const colors={dorm:'#749bb1',hall:'#416c61',library:'#9c7895',lake:'#659fac',gym:'#709b85',lab:'#668fa7',gate:'#9e936b',plaza:'#8b829e'};
         if(o.zone==='dorm'){
@@ -88,8 +93,8 @@ globalThis.WorldArt = (() => {
         box(g,1.4,.95,.8,'#9e8975',0,.6,0);box(g,.55,.025,.42,'#eff0dc',0,1.09,0);
       }else { box(g,2,.035,1.4,'#6dc8b7',0,.2,0); }
       const ring=new THREE.Mesh(new THREE.RingGeometry(.78,.88,24),new THREE.MeshBasicMaterial({color:o.type==='chest'?'#f0c570':'#86dce1',side:THREE.DoubleSide,transparent:true,opacity:.8}));ring.rotation.x=-Math.PI/2;ring.position.y=.22;g.add(ring);g.userData.ring=ring;
-      const short={chest:'宝箱',stamp:'印章',pc:'终端',switch:'电源',quest:o.questId?'调查交付':'校史委托',puzzle:'现场推理',exit:'出口',door:'入口',note:'便签'};
-      label(g,short[o.type]||o.name,0,o.type==='npc'?2.7:2.5,0,o.type==='chest'?'#ffdc94':'#d6f8f0',o.type==='npc'?3:2.1);
+      const short={chest:'宝箱',stamp:'印章',pc:'终端',switch:'电源',quest:o.questId?'调查交付':'校史委托',puzzle:'现场推理',stairs:o.name,shop:'商店柜台',exit:'出口',door:'入口',note:'便签'};
+      label(g,short[o.type]||o.name,0,o.type==='npc'?2.7:2.5,0,o.type==='chest'?'#ffdc94':'#d6f8f0',o.type==='stairs'?4:o.type==='npc'?3:2.1);
     }
     return visuals;
   }

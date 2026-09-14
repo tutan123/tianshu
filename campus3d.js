@@ -2,6 +2,9 @@
 globalThis.Campus3D = (() => {
   const coords = { dorm: [-22, -14], hall: [0, -21], library: [23, -17], lake: [-23, 13], gym: [2, 22], lab: [24, 4], gate: [26, 25], plaza: [0, 0] };
   const entries = { dorm: [-22, -8], hall: [0, -14], library: [23, -10], lake: [-35, 2], gym: [-6, 29], lab: [24, 10], gate: [26, 28], plaza: [-24, 36] };
+  const worldBounds=globalThis.WorldDistricts?.bounds||{minX:-57,maxX:42,minZ:-36,maxZ:37};
+  const worldCenter=[(worldBounds.minX+worldBounds.maxX)/2,(worldBounds.minZ+worldBounds.maxZ)/2];
+  for(const b of globalThis.WorldDistricts?.buildings||[]){entries[b.id]=b.entry;coords[b.id]=[b.x,b.z];}
   let scene, renderer, camera, miniCamera, host, hooks, sun, hemi, water, player, scan, rain, ringTarget, lamps = [], lampPools = [], lampPoolMaterial = null, markers = {}, colliders = [];
   let mode = 'overview', active = true, weather = 'auto', worldNight = false, yaw = .08, pitch = .84, radius = 96, target, desiredTarget, last = 0, elapsed = 0, currentPlace = 'dorm', pointer = null, travel = null, pressed = new Set(), ready = false, near = null;
   let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect;
@@ -11,10 +14,10 @@ globalThis.Campus3D = (() => {
   const geometries = {};
   const previews = {};
   const architectureVisuals = [];
-  let campusRoot, zone = null, indoor = null, outsideColliders, outsideVisuals, nearestObject = null, returnPoint, route = [];
+  let campusRoot, zone = null, floor = 1, indoor = null, outsideColliders, outsideVisuals, nearestObject = null, returnPoint, route = [];
   const interiors = {};
   let surveying=false, fogBaseNear=260;
-  const worldObjects = () => zone ? Exploration.objects(zone) : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+Exploration.regions[id].name,x,z,destination:id}))];
+  const worldObjects = () => zone ? [...(floor===1&&Exploration.regions[zone]?Exploration.objects(zone):[]),...(globalThis.CampusRooms?.objects(zone,floor)||[])] : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+(globalThis.CampusRooms?.name(id)||Exploration.regions[id].name),x,z,destination:id}))];
   function mesh(geo, material, x, y, z, parent = scene) { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; }
   function box(w, h, d, material, x, y, z, parent) {
     const geometry=new THREE.BoxGeometry(w,h,d);
@@ -195,7 +198,7 @@ globalThis.Campus3D = (() => {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
       renderer.domElement.id = 'campus-canvas'; renderer.domElement.setAttribute('aria-label', '可交互的三维江城大学校园'); host.appendChild(renderer.domElement);
       scene = new THREE.Scene(); scene.background = new THREE.Color('#becdc5'); scene.fog = new THREE.Fog('#becdc5', 100, 185);
-      camera = new THREE.PerspectiveCamera(42, 1, .2, 600);camera.layers.enable(1); miniCamera = new THREE.OrthographicCamera(-62, 47, 40, -40, .1, 180); miniCamera.position.set(0, 90, 0); miniCamera.up.set(0, 0, -1); miniCamera.lookAt(0, 0, 0);
+      camera = new THREE.PerspectiveCamera(42, 1, .2, 2000);camera.layers.enable(1); miniCamera = new THREE.OrthographicCamera(worldBounds.minX-3,worldBounds.maxX+3,-worldBounds.minZ+3,-worldBounds.maxZ-3,.1,300); miniCamera.position.set(0,150,0); miniCamera.up.set(0,0,-1); miniCamera.lookAt(0,0,0);
       target = new THREE.Vector3(0, 0, 1); desiredTarget = target.clone();
       hemi = new THREE.HemisphereLight('#e3eeff', '#7f8973', 1.15); scene.add(hemi);
       sun = new THREE.DirectionalLight('#fff0cd', 2.4); sun.position.set(-30, 55, 30); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -55; sun.shadow.camera.right = 55; sun.shadow.camera.top = 55; sun.shadow.camera.bottom = -55; sun.shadow.camera.far = 150; sun.shadow.bias = -.0005; sun.shadow.normalBias = .035; scene.add(sun);
@@ -204,6 +207,11 @@ globalThis.Campus3D = (() => {
       for(const child of [...scene.children])if(child!==sun&&child!==hemi&&child!==player.group&&child!==ringTarget)campusRoot.add(child);
       scene.add(campusRoot);
       const dressing=WorldArt.outdoor(campusRoot);colliders.push(...dressing.colliders);outsideColliders=colliders;outsideVisuals=dressing.visuals;
+      if(globalThis.WorldDistricts){
+        const extension=WorldDistricts.build(campusRoot);colliders.push(...extension.colliders);
+        for(const v of extension.visuals){const b=WorldDistricts.buildings.find(b=>b.id===v.id),parts=[];v.root.traverse(o=>{if(o.isMesh)parts.push({object:o,original:o.material,ghost:null});});architectureVisuals.push({root:v.root,meshes:parts,objects:parts.map(p=>p.object),faded:false,bounds:new THREE.Box3(new THREE.Vector3(b.x-b.w/2-1,0,b.z-b.d/2-1),new THREE.Vector3(b.x+b.w/2+1,b.h+4,b.z+b.d/2+2))});}
+        sun.position.set(-55,100,70);sun.shadow.camera.left=-135;sun.shadow.camera.right=135;sun.shadow.camera.top=135;sun.shadow.camera.bottom=-135;sun.shadow.camera.far=350;sun.shadow.camera.updateProjectionMatrix();
+      }
       player.group.visible = false; wire(); ready = true; resize(); setWeather('auto'); requestAnimationFrame(frame); return true;
     } catch (err) { renderer?.dispose(); renderer?.domElement.remove(); hooks.error?.(err); return false; }
   }
@@ -222,17 +230,26 @@ globalThis.Campus3D = (() => {
     for (const pool of lampPools) pool.visible = night;
     water.material.roughness = wet ? .12 : .25; hooks.weather?.(night, wet); return { night, wet };
   }
-  function buildInterior(id) {
+  function buildInterior(id,level=1) {
+    const extra=globalThis.CampusRooms?.build(id,level);if(extra)return extra;
     try { const built = globalThis.Interiors?.build?.(id); if (built?.root) return built; }
     catch (err) { hooks?.error?.(err); }
     return WorldArt.interior(id);
   }
-  function enterInterior(id) {
-    if(!ready||!Exploration.regions[id]||mode!=='walk')return false;
+  function enterInterior(id,level=1) {
+    if(!ready||!(globalThis.CampusRooms?.valid(id,level)||Exploration.regions[id]&&level===1)||mode!=='walk')return false;
     if(!zone)returnPoint=player.group.position.clone();
     if(indoor)indoor.root.visible=false;
-    surveying=false;zone=id; currentPlace=id; indoor=interiors[id] ||= buildInterior(id);scene.add(indoor.root);indoor.root.visible=true;campusRoot.visible=false;colliders=indoor.colliders;
-    player.group.position.set(0,.2,10.5);target.copy(player.group.position);desiredTarget.copy(target);radius=31;yaw=0;pitch=1.03;
+    surveying=false;zone=id;floor=level;currentPlace=id;const key=id+':'+floor;
+    if(!interiors[key]){interiors[key]=buildInterior(id,floor);if(floor===1&&Exploration.regions[id])Object.assign(interiors[key].visuals,WorldArt.interactables(interiors[key].root,globalThis.CampusRooms?.objects(id,1)||[]));}
+    indoor=interiors[key];scene.add(indoor.root);indoor.root.visible=true;campusRoot.visible=false;colliders=indoor.colliders;
+    // A floor plan can put its own spawn inside its own wall: the hall 3F, library 3F,
+    // bookshop 2F and museum 2F plans all run an x=0 wall through z 1.7..8.3, which is
+    // exactly where spawn [0,8] lands. Dropping the player there boxes them in and every
+    // target on the floor becomes unreachable, so fall back to the nearest clear cell.
+    const wanted=level===1?[0,10.5]:(indoor.spawn||[0,8]);
+    const spawn=[[wanted[0],wanted[1]],[wanted[0],wanted[1]-2.5],[wanted[0]+2.5,wanted[1]],[wanted[0]-2.5,wanted[1]],[wanted[0],wanted[1]+2.5],[0,11],[0,-11]].find(([x,z])=>clearAt(x,z))||wanted;
+    player.group.position.set(spawn[0],.22,spawn[1]);target.copy(player.group.position);desiredTarget.copy(target);radius=31;yaw=0;pitch=1.03;
     pressed.clear();travel=null;route=[];ringTarget.visible=false;nearestObject=null;near=null;hooks.near?.(null);hooks.object?.(null);
     miniCamera.left=-20;miniCamera.right=20;miniCamera.top=16;miniCamera.bottom=-16;miniCamera.updateProjectionMatrix();
     hemi.intensity=.95;sun.intensity=1.5;scene.background.set('#263e49');
@@ -240,21 +257,21 @@ globalThis.Campus3D = (() => {
   }
   function exitInterior() {
     if(!zone)return false;
-    surveying=false;indoor.root.visible=false;campusRoot.visible=true;colliders=outsideColliders;zone=null;indoor=null;
+    surveying=false;indoor.root.visible=false;campusRoot.visible=true;colliders=outsideColliders;zone=null;floor=1;indoor=null;
     player.group.position.copy(returnPoint||new THREE.Vector3(0,.18,7));target.copy(player.group.position);desiredTarget.copy(target);radius=27;pitch=.86;
     pressed.clear();travel=null;route=[];ringTarget.visible=false;nearestObject=null;near=null;
-    miniCamera.left=-62;miniCamera.right=47;miniCamera.top=40;miniCamera.bottom=-40;miniCamera.updateProjectionMatrix();setWeather(weather);
+    miniCamera.left=worldBounds.minX-3;miniCamera.right=worldBounds.maxX+3;miniCamera.top=-worldBounds.minZ+3;miniCamera.bottom=-worldBounds.maxZ-3;miniCamera.updateProjectionMatrix();setWeather(weather);
     document.body.classList.remove('inside');hooks.zone?.(null);hooks.object?.(null);return true;
   }
   function interact() { if(active&&mode==='walk'&&nearestObject)hooks.interact?.(nearestObject); }
-  function overviewRadius() { return Math.max(112,55/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+30); }
+  function overviewRadius() {const halfX=(worldBounds.maxX-worldBounds.minX)/2+8,halfZ=(worldBounds.maxZ-worldBounds.minZ)/2+8,tan=Math.tan(camera.fov*Math.PI/360);return Math.max(halfZ/tan,halfX/(tan*camera.aspect)+halfZ);}
   function surveyRadius() { return zone ? Math.max(62,42/(2*Math.tan(camera.fov*Math.PI/360)*camera.aspect)) : overviewRadius(); }
   function survey() { surveying=!surveying;radius=surveying?surveyRadius():(zone?31:27);pitch=surveying?1.18:(zone?1.03:.88);yaw=0; }
   function setMode(next, place = currentPlace) {
     if(zone)exitInterior();surveying=false;
     if (!ready || !entries[place] || !['walk', 'overview'].includes(next)) return; mode = next; pressed.clear(); travel = null; ringTarget.visible = false; near = null; currentPlace = place;
     if (next === 'walk') { const e = entries[place],spawn=[[e[0],e[1]+3],[e[0],e[1]+1],[e[0]+3,e[1]],e].find(([x,z])=>clearAt(x,z))||e; player.group.position.set(spawn[0],0,spawn[1]); desiredTarget.copy(player.group.position); radius = 27; yaw = .1; pitch = .88; }
-    else { desiredTarget.set(host.clientWidth<800?-7:0,0,-1); radius=overviewRadius(); yaw = .08; pitch = .92; }
+    else { desiredTarget.set(worldCenter[0],0,worldCenter[1]); radius=overviewRadius(); yaw = 0; pitch = 1.05; }
     player.group.visible = next === 'walk'; document.body.classList.toggle('walking', next === 'walk'); hooks.mode?.(next); resize();
   }
   function rayPoint(event) {
@@ -267,7 +284,7 @@ globalThis.Campus3D = (() => {
   }
   function clearAt(x, z) {
     if(zone)return Math.abs(x)<17.5&&Math.abs(z)<13.5&&!colliders.some(c=>Math.abs(x-c.x)<c.w&&Math.abs(z-c.z)<c.d);
-    if (x < -57 || x > 42 || z < -36 || z > 37) return false;
+    if (x < worldBounds.minX || x > worldBounds.maxX || z < worldBounds.minZ || z > worldBounds.maxZ) return false;
     if (colliders.some(c => Math.abs(x - c.x) < c.w && Math.abs(z - c.z) < c.d)) return false;
     const inLake = ((x + 26) / 12.8) ** 2 + ((z - 16) / 15.8) ** 2 < 1; return !inLake || Math.abs(z - 17) < .95;
   }
@@ -275,7 +292,7 @@ globalThis.Campus3D = (() => {
     if (!clearAt(x, z)) return false;
     const sx=Math.round(player.group.position.x),sz=Math.round(player.group.position.z),gx=Math.round(x),gz=Math.round(z),key=(a,b)=>a+','+b;
     const queue=[[sx,sz]],came=new Map([[key(sx,sz),null]]);let found=null;
-    for(let i=0;i<queue.length&&i<16000;i++){
+    for(let i=0;i<queue.length&&i<55000;i++){
       const [cx,cz]=queue[i];if(cx===gx&&cz===gz){found=[cx,cz];break;}
       for(const [dx,dz] of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){
         const nx=cx+dx,nz=cz+dz,k=key(nx,nz);if(came.has(k)||!clearAt(nx,nz)||!clearAt(cx+dx,cz)||!clearAt(cx,cz+dz))continue;
@@ -306,7 +323,7 @@ globalThis.Campus3D = (() => {
   function resize() {
     if (!ready) return; const w = host.clientWidth, h = host.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
     if(surveying)radius=surveyRadius();
-    else if(mode==='overview'){radius=overviewRadius();desiredTarget.set(host.clientWidth<800?-7:0,0,-1);}
+    else if(mode==='overview'){radius=overviewRadius();desiredTarget.set(worldCenter[0],0,worldCenter[1]);}
     const frame = document.getElementById('mini-frame')?.getBoundingClientRect(), bounds = host.getBoundingClientRect();
     miniRect = frame && frame.width ? { x: frame.left - bounds.left + 2, y: h - (frame.bottom - bounds.top) + 2, width: frame.width - 4, height: frame.height - 4 } : { x: w - 218, y: h - 320, width: 188, height: 140 };
   }
@@ -318,7 +335,7 @@ globalThis.Campus3D = (() => {
     if (length > 0) { const speed=travel?Math.min(length,dt*6):dt*6;dx = dx / length * speed; dz = dz / length * speed; const p = player.group.position; let moved = false; if (clearAt(p.x + dx, p.z)) { p.x += dx; moved = true; } if (clearAt(p.x, p.z + dz)) { p.z += dz; moved = true; } if (!moved && travel) { travel = null;route=[]; ringTarget.visible = false; } player.group.rotation.y = Math.atan2(dx, dz); player.left.rotation.x = Math.sin(elapsed * 13) * .45; player.right.rotation.x = -player.left.rotation.x; } else player.left.rotation.x = player.right.rotation.x = 0;
     const pos = player.group.position; pos.y = groundHeight(pos.x,pos.z);
     desiredTarget.copy(player.group.position); const n = zone ? null : Object.entries(entries).filter(([id, e]) => Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) < 3.3).sort((a, b) => Math.hypot(player.group.position.x - a[1][0], player.group.position.z - a[1][1]) - Math.hypot(player.group.position.x - b[1][0], player.group.position.z - b[1][1]))[0]?.[0] || null;
-    if (n !== near) { near = n; hooks.near?.(n); }
+    if (n !== near) { near = n; hooks.near?.(CONTENT.places[n]?n:null); }
     const obj=worldObjects().filter(o=>Math.hypot(pos.x-o.x,pos.z-o.z)<2.9).sort((a,b)=>Math.hypot(pos.x-a.x,pos.z-a.z)-Math.hypot(pos.x-b.x,pos.z-b.z))[0]||null;
     if(obj?.id!==nearestObject?.id){nearestObject=obj;hooks.object?.(obj);}
   }
@@ -341,7 +358,7 @@ globalThis.Campus3D = (() => {
     if (!active || document.hidden || !ready) return; elapsed += dt;
     const playing = document.getElementById('cinema')?.hidden === false || document.querySelector('dialog[open]');
     if (mode === 'walk' && !playing) stepPlayer(dt);
-    if(surveying)desiredTarget.set(!zone&&host.clientWidth<800?-7:0,0,0);
+    if(surveying)desiredTarget.set(zone?0:worldCenter[0],0,zone?0:worldCenter[1]);
     target.lerp(desiredTarget, Math.min(1, dt * 5));
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * radius, target.y + Math.sin(pitch) * radius, target.z + Math.cos(yaw) * Math.cos(pitch) * radius); camera.lookAt(target);
     if (worldState.motion) {
@@ -367,5 +384,5 @@ globalThis.Campus3D = (() => {
       b.style.left = `${(pin.x * .5 + .5) * w}px`; b.style.top = `${(-pin.y * .5 + .5) * h}px`; b.hidden = !!zone || pin.z > 1 || pin.x < -.95 || pin.x > .95 || pin.y < -.95 || pin.y > .9 || mode === 'walk' && Math.hypot(player.group.position.x - e[0], player.group.position.z - e[1]) > 22;
     }
   }
-  return { init, update, preview, refreshPins: () => { pinNodes = null; }, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())), reset: () => zone?enterInterior(zone):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), target: target?.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, architecture: campusRoot?.children.filter(o=>o.name.startsWith('Architecture_')).map(o=>({...o.userData,batches:o.children.length})), render: {...renderer?.info.render}, waterHeight: water?.position.y, fog: {near:scene?.fog.near,far:scene?.fog.far}, occluded: architectureVisuals.filter(o=>o.faded).map(o=>o.root.name), frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
+  return { init, update, preview, refreshPins: () => { pinNodes = null; }, setMode, setWeather, moveTo, resize, enterInterior, exitInterior, interact, survey, getZone:()=>zone, getFloor:()=>floor, getPlace:()=>currentPlace, getObject:()=>nearestObject, clearAt, worldObjects, zoom: delta => radius = THREE.MathUtils.clamp(radius + delta, mode === 'walk' ? 12 : 65, mode === 'walk' ? 40 : Math.max(260,overviewRadius())), reset: () => zone?enterInterior(zone,floor):setMode(mode, currentPlace), setActive: value => { active = value; if (!value) { pressed.clear(); travel = null;route=[]; if (ringTarget) ringTarget.visible = false; } }, getMode: () => mode, getNear: () => near, ready: () => ready, controls: (direction, down) => { const code = { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]; if (down) { pressed.add(code); travel = null;route=[]; } else pressed.delete(code); }, inspect: () => ({ ready, active, mode, zone, floor, currentPlace, bounds:worldBounds, concept:indoor?.concept, weather, player: player?.group.position.toArray(), camera: camera?.position.toArray(), target: target?.toArray(), radius, miniRect, rain: rain?.visible, objects: campusRoot?.children.length, architecture: campusRoot?.children.filter(o=>o.name.startsWith('Architecture_')).map(o=>({...o.userData,batches:o.children.length})), render: {...renderer?.info.render}, waterHeight: water?.position.y, fog: {near:scene?.fog.near,far:scene?.fog.far}, occluded: architectureVisuals.filter(o=>o.faded).map(o=>o.root.name), frameTime: elapsed, near, object:nearestObject?.id, route:route.length }) };
 })();

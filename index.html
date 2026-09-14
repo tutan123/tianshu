@@ -14,6 +14,7 @@
   <script defer src="content.js"></script>
   <script defer src="state.js"></script>
   <script defer src="rpg.js"></script>
+  <script defer src="campus-rooms.js"></script>
   <script defer src="exploration.js"></script>
   <script defer src="growth-ui.js"></script>
   <script defer src="vendor/matter.min.js"></script>
@@ -25,6 +26,7 @@
   <script defer src="characters.js"></script>
   <script defer src="world-art.js"></script>
   <script defer src="campus-buildings.js"></script>
+  <script defer src="world-districts.js"></script>
   <script defer src="interiors.js"></script>
   <script defer src="campus3d.js"></script>
   <script defer src="game.js"></script>
@@ -37,6 +39,7 @@
     </div>
     <div id="map3d" aria-label="江城大学三维校园地图" hidden><div class="world-shade"></div><div id="pins-3d"></div></div>
     <div class="explore-bar" hidden id="explore-bar"><button class="secondary" id="exit-walk"><i data-lucide="arrow-left"></i><span>校园全景</span></button><span id="explore-place">学生宿舍</span><button class="icon-button" id="floor-map" title="切换全区地图" aria-label="切换全区地图"><i data-lucide="map"></i></button></div>
+    <div id="district-navigation"><label for="district-destination"><i data-lucide="signpost"></i><span>区域导航</span></label><select id="district-destination" aria-label="区域目的地"><option value="">选择目的地</option><optgroup label="校园"><option value="dorm">梧桐宿舍</option><option value="hall">钟楼教学楼</option><option value="library">静川图书馆</option></optgroup><optgroup label="校外 · 南门商店街"><option value="bookshop">南门旧书局</option><option value="cafe">雨巷咖啡馆</option><option value="grocery">榕树便利店</option><option value="arcade">像素游戏厅</option><option value="clinic">青禾社区诊所</option><option value="studio">回声照相馆</option></optgroup><optgroup label="东侧 · 荷院与河岸"><option value="museum">砚池校史馆</option></optgroup></select></div>
     <div id="exploration-journal" hidden><span>校史寻踪</span><strong id="stamp-progress">0 / 8</strong><small id="exploration-progress">寻找校园里的八枚印章</small><small id="local-investigation" hidden></small></div>
     <div id="mini-frame" hidden aria-label="三维校园小地图"><span>江大 · 北 ↑</span></div>
     <div id="walk-controls" hidden>

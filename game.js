@@ -47,13 +47,19 @@
     if(state.active)return;
     if(o.type==='door'){Campus3D.enterInterior(o.destination);return;}
     if(o.type==='exit'){Campus3D.exitInterior();return;}
+    if(o.type==='stairs'){Campus3D.enterInterior(o.zone,o.to);return;}
     const result=Exploration.act(state,o.id,choice); save();hud(); if(result.reward)sound('win');else sound('soft');
     $('world-dialog-title').textContent=o.name;
     $('world-dialog-type').textContent={npc:'校园见闻 / 对话',quest:'校史寻踪 / 委托',chest:'行囊 / 探索发现',pc:'校园网络 / 终端',stamp:'校史寻踪 / 印章',switch:'实验楼 / 电力系统',puzzle:'校园异常 / 现场推理',note:'记忆碎片 / 调查'}[o.type]||'校园见闻';
-    $('world-dialog-text').textContent=result.text;
+    $('world-dialog-text').textContent=o.type==='shop'?(choice||o.text):result.text;
     const actions=$('world-dialog-actions');actions.replaceChildren();
     function action(text,fn,primary=false){const b=document.createElement('button');b.className=primary?'primary':'secondary';b.textContent=text;b.onclick=fn;actions.appendChild(b);}
-    if(result.choices){
+    if(o.type==='shop'){
+      for(const id of o.wares){const item=RPG.items[id];action(`${item.name} · ¥${item.price}`,()=>{
+        const bought=RPG.buy(state,id);save();hud();worldInteract(o,bought?`已购买 ${item.name}。已放入背包。`:'无法购买：请检查余额、物品持有数量或装备是否已拥有。');
+      });}
+      action('离开柜台',closeWorldDialog);
+    }else if(result.choices){
       // Puzzles answer in place: the dialog stays open and re-renders with the verdict.
       for(const c of result.choices)action(c.text,()=>worldInteract(o,c.id));
     }else{
@@ -98,7 +104,7 @@
     $('stamp-progress').textContent=exploration.stamps.length+' / 8';
     const openedChests=Exploration.all().filter(o=>o.type==='chest'&&exploration.opened.includes(o.id)).length;
     $('exploration-progress').textContent=exploration.claimed?'校史寻踪已完成':exploration.stamps.length===8?'前往学生会馆交付印章':`已探索 ${exploration.visited.length} 处室内 · 打开 ${openedChests} 个宝箱`;
-    const localQuest=Exploration.quests(state).find(q=>q.zone===window.Campus3D?.getZone());
+    const localQuest=Exploration.quests(state).find(q=>q.zone===window.Campus3D?.getZone()&&(Campus3D.getFloor?.()||1)===1);
     $('local-investigation').hidden=!localQuest;
     $('local-investigation').textContent=localQuest?localQuest.title+' · '+(localQuest.complete?'已归档':localQuest.steps.find(step=>!step.done)?.text||'等待交付'):'';
     $('host-level').textContent = 'Lv.' + RPG.level(state);
@@ -317,6 +323,11 @@
     toast('记忆已恢复');
   }
   document.querySelectorAll('[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel)));
+  $('district-destination').addEventListener('change',e=>{
+    const id=e.target.value;if(!id||state.active||!mapReady())return;
+    if(CONTENT.places[id])selectedPlace=id;
+    Campus3D.setMode('walk',id);Campus3D.setActive(true);$('explore-place').textContent=CampusRooms.name(id);
+  });
   $('close-panel').addEventListener('click', closePanel);
   $('panel').addEventListener('cancel', e => { e.preventDefault(); closePanel(); });
   $('panel').addEventListener('click', e => { if (e.target === $('panel')) { const r = $('panel').getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) closePanel(); } });
@@ -385,22 +396,22 @@
   }
   if (window.Campus3D) {
     Campus3D.init($('map3d'), {
-      select: place => { selectedPlace = place; selectedEvent = null; renderMap(); },
+      select: place => { if(CampusRooms.locations[place]){Campus3D.setMode('walk',place);return;}selectedPlace = place; selectedEvent = null; renderMap(); },
       enter: place => { const id = TS.available(state).find(n => CONTENT.nodes[n].place === place); if (id) enter(id); else toast('这里暂时没有可触发的剧情。'); },
       near: nearPlace,
       object: objectNear,
       interact: worldInteract,
       zone: id=>{
-        $('explore-place').textContent=id?Exploration.regions[id].name:CONTENT.places[selectedPlace].name;
+        $('explore-place').textContent=id?CampusRooms.title(id,Campus3D.getFloor()):CampusRooms.name(Campus3D.getPlace());
         $('exit-walk').querySelector('span').textContent=id?'返回校园':'校园全景';
-        $('mini-frame').querySelector('span').textContent=id?'室内平面 · 北 ↑':'江大 · 北 ↑';
+        $('mini-frame').querySelector('span').textContent=id?Campus3D.getFloor()+'F · 北 ↑':'江大与周边 · 北 ↑';
         if(id){const w=Exploration.ensure(state);if(!w.visited.includes(id))w.visited.push(id);save();}
         hud();
       },
       mode: next => {
         const walking = next === 'walk'; document.body.classList.toggle('walking', walking);
         for (const id of ['walk-controls', 'mini-frame', 'explore-bar','exploration-journal']) $(id).hidden = !walking;
-        $('explore-place').textContent = CONTENT.places[selectedPlace].name;
+        $('explore-place').textContent = CampusRooms.name(Campus3D.getPlace());
         $('walk-toggle').setAttribute('aria-pressed', String(walking));
         nearPlace(null);
       },
