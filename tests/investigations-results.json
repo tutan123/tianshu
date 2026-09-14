@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-14T12:31:30.856Z",
+  "testedAt": "2026-09-14T14:53:32.892Z",
   "checks": [
     "Real game enables quest destinations",
     "Quest navigation closes panel and enters campus walking",
