@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-14T12:11:12.470Z",
+  "testedAt": "2026-09-14T12:32:49.047Z",
   "checks": [
     "Route to dorm-annex-door",
     "Annex door opens interior: dorm-annex-door",

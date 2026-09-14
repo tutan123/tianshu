@@ -229,6 +229,9 @@ globalThis.WorldArt = (() => {
     box(root,3,.3,3,'#c5c6b3',-49,1.45,-28);box(root,.8,2.5,.8,'#a6b1aa',-49,2.8,-28);label(root,'旧气象台 · 林间小径',-49,4.8,-28,'#d8e7ca',6);
     const visuals=interactables(root,Exploration.outdoor);
     for(const o of Exploration.outdoor)if(o.x<-42&&o.z<-17)visuals[o.id].position.y=1.3;
+    // 校外内容层在扩展区新增的户外物件也要有实体，否则只剩提示没有东西可看。
+    const extended=globalThis.OffCampus?.outdoor?.()||[];
+    if(extended.length)Object.assign(visuals,interactables(root,extended));
     colliders.push(...campusGrounds(root));
     return {colliders,visuals};
   }

@@ -17,7 +17,7 @@ globalThis.Campus3D = (() => {
   let campusRoot, zone = null, floor = 1, indoor = null, outsideColliders, outsideVisuals, nearestObject = null, returnPoint, route = [];
   const interiors = {};
   let surveying=false, fogBaseNear=260;
-  const worldObjects = () => zone ? [...(floor===1&&Exploration.regions[zone]?Exploration.objects(zone):[]),...(globalThis.CampusRooms?.objects(zone,floor)||[])] : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+(globalThis.CampusRooms?.name(id)||Exploration.regions[id].name),x,z,destination:id}))];
+  const worldObjects = () => zone ? [...(floor===1&&Exploration.regions[zone]?Exploration.objects(zone):[]),...(globalThis.CampusRooms?.objects(zone,floor)||[]),...(globalThis.OffCampus?.objects(zone,floor)||[])] : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+(globalThis.CampusRooms?.name(id)||Exploration.regions[id].name),x,z,destination:id})), ...(globalThis.OffCampus?.outdoor()||[])];
   function mesh(geo, material, x, y, z, parent = scene) { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; }
   function box(w, h, d, material, x, y, z, parent) {
     const geometry=new THREE.BoxGeometry(w,h,d);
@@ -241,7 +241,12 @@ globalThis.Campus3D = (() => {
     if(!zone)returnPoint=player.group.position.clone();
     if(indoor)indoor.root.visible=false;
     surveying=false;zone=id;floor=level;currentPlace=id;const key=id+':'+floor;
-    if(!interiors[key]){interiors[key]=buildInterior(id,floor);if(floor===1&&Exploration.regions[id])Object.assign(interiors[key].visuals,WorldArt.interactables(interiors[key].root,globalThis.CampusRooms?.objects(id,1)||[]));}
+    if(!interiors[key]){
+      interiors[key]=buildInterior(id,floor);
+      if(floor===1&&Exploration.regions[id])Object.assign(interiors[key].visuals,WorldArt.interactables(interiors[key].root,globalThis.CampusRooms?.objects(id,1)||[]));
+      const extra=globalThis.OffCampus?.objects(id,floor)||[];
+      if(extra.length)Object.assign(interiors[key].visuals,WorldArt.interactables(interiors[key].root,extra));
+    }
     indoor=interiors[key];scene.add(indoor.root);indoor.root.visible=true;campusRoot.visible=false;colliders=indoor.colliders;
     // A floor plan can put its own spawn inside its own wall: the hall 3F, library 3F,
     // bookshop 2F and museum 2F plans all run an x=0 wall through z 1.7..8.3, which is

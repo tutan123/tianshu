@@ -60,7 +60,7 @@ globalThis.Exploration = (() => {
     { id: 'dorm-west-door', type: 'door', name: '进入宿舍西楼', x: -36, z: -8.5, destination: 'dorm' },
     { id: 'gate-east-door', type: 'door', name: '进入维修铺东间', x: 34, z: 24.4, destination: 'gate' }
   ];
-  const all = () => [...outdoor, ...Object.keys(regions).flatMap(objects),...(globalThis.CampusRooms?.allObjects()||[])];
+  const all = () => [...outdoor, ...Object.keys(regions).flatMap(objects),...(globalThis.CampusRooms?.allObjects()||[]),...(globalThis.OffCampus?.allObjects()||[])];
   const fresh = () => ({ opened: [], stamps: [], talked: [], switches: [], visited: [], claimed: false });
   function ensure(s) { return RPG.ensure(s).world ||= fresh(); }
   // Frozen snapshot of every interaction id that has ever been legal, grouped by the
@@ -105,7 +105,7 @@ globalThis.Exploration = (() => {
         : key === 'talked' ? ids(['npc', 'note'])
           : key === 'switches' ? ids(['switch', 'puzzle'])
             : [];
-    return new Set([...HISTORICAL_IDS[key],...(globalThis.CampusRooms?.historical[key]||[]), ...current]);
+    return new Set([...HISTORICAL_IDS[key],...(globalThis.CampusRooms?.historical[key]||[]),...(globalThis.OffCampus?.historical[key]||[]), ...current]);
   }
   function validate(w) {
     if (!w) return fresh();
@@ -117,12 +117,14 @@ globalThis.Exploration = (() => {
   }
   function quests(s){
     const w=ensure(s);
-    return Object.entries(investigations).map(([zone,q])=>{
+    const campus=Object.entries(investigations).map(([zone,q])=>{
       const steps=[{text:'与'+regions[zone].npc+'交谈',done:w.talked.includes(zone+'-npc')},{text:'调查'+q.clue,done:w.talked.includes(zone+'-note')},{text:'解决现场问题',done:w.switches.includes(zone+'-puzzle')}];
       if(zone==='lab')steps.push({text:'恢复供电并取出封存日志',done:w.opened.includes('lab-cache')});
       steps.push({text:'交付调查结果',done:w.opened.includes(zone+'-task')});
       return {id:zone+'-investigation',title:q.title,zone,description:q.description,steps,complete:w.opened.includes(zone+'-task'),reward:`¥${q.cash} · ${q.xp} EXP · 学习笔记 ×1`,objectiveId:zone+'-task'};
     });
+    // 校外调查线与故事链由内容层自己登记，这里只做合并，避免两处各维护一份。
+    return [...campus, ...(globalThis.OffCampus?.quests(s)||[])];
   }
   function evidence(s){const w=ensure(s);return [...Object.entries(investigations).filter(([zone])=>w.talked.includes(zone+'-note')).map(([zone,q])=>({id:zone+'-note',name:q.clue,desc:q.text,icon:'file-search'})),...(globalThis.CampusRooms?.allObjects()||[]).filter(o=>o.type==='note'&&w.talked.includes(o.id)).map(o=>({id:o.id,name:o.name,desc:o.text,icon:'file-search'}))];}
   function act(s, id, choice) {

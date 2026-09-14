@@ -7,6 +7,8 @@ globalThis.RPG = (() => {
     sneakers: { name: '校园跑鞋', slot: 'outfit', price: 520, icon: 'footprints', rarity: 'rare', desc: '生命 +8，精准窗口 +7%', bonus: { hp: 8, window: .07 } },
     pendant: { name: '专注吊坠', slot: 'accessory', price: 300, icon: 'gem', rarity: 'standard', desc: '答题与回收时间 +6 秒', bonus: { time: 6 } },
     chip: { name: '天枢协处理器', slot: 'accessory', price: 680, icon: 'cpu', rarity: 'rare', desc: '攻击 +5，回收价值 +25%', bonus: { attack: 5, value: .25 } },
+    // 故事链「荷池底片」的唯一奖励。不出现在任何商店的 wares 里，只能在校外拿到。
+    negative: { name: '未显影底片', slot: 'accessory', price: 0, icon: 'image', rarity: 'rare', desc: '攻击 +3，答题与回收时间 +4 秒', bonus: { attack: 3, time: 4 }, unique: true },
     coffee: { name: '冰咖啡', slot: null, price: 90, icon: 'coffee', desc: '恢复 30 算力', compute: 30 },
     notes: { name: '复习手册', slot: null, price: 150, icon: 'book-marked', desc: '经验 +35', xp: 35 }
   };

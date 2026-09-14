@@ -41,7 +41,8 @@ async (browserPage) => {
       assert(pixels>25,'Rendered scene has nonblank canvas: '+zone);await shot(zone);
     }
     await page.reload();await page.waitForFunction(()=>Campus3D.ready());
-    assert(await page.evaluate(()=>Exploration.quests(JSON.parse(localStorage.getItem('tianshu-v3-auto'))).every(q=>q.complete)),'All eight investigations survive reload');
+    // 只断言校园八条：Exploration.quests 现在还会合并校外内容层的条目。
+    assert(await page.evaluate(()=>Exploration.quests(JSON.parse(localStorage.getItem('tianshu-v3-auto'))).filter(q=>q.id.endsWith('-investigation')).every(q=>q.complete)),'All eight investigations survive reload');
     await page.locator('#growth-summary').click();await page.locator('[data-growth-tab=bag]').click();await page.locator('[data-bag-filter]').selectOption('evidence');
     assert(await page.locator('[data-bag-item]').count()===8,'Eight collected clues appear in real backpack');
     await page.setViewportSize({width:390,height:844});await shot('evidence-mobile');

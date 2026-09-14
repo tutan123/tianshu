@@ -48,7 +48,8 @@
     if(o.type==='door'){Campus3D.enterInterior(o.destination);return;}
     if(o.type==='exit'){Campus3D.exitInterior();return;}
     if(o.type==='stairs'){Campus3D.enterInterior(o.zone,o.to);return;}
-    const result=Exploration.act(state,o.id,choice); save();hud(); if(result.reward)sound('win');else sound('soft');
+    // 校外内容层先接管它自己的物件；返回 undefined 表示不归它管。
+    const result=globalThis.OffCampus?.act?.(state,o.id,choice)||Exploration.act(state,o.id,choice); save();hud(); if(result.reward)sound('win');else sound('soft');
     $('world-dialog-title').textContent=o.name;
     $('world-dialog-type').textContent={npc:'校园见闻 / 对话',quest:'校史寻踪 / 委托',chest:'行囊 / 探索发现',pc:'校园网络 / 终端',stamp:'校史寻踪 / 印章',switch:'实验楼 / 电力系统',puzzle:'校园异常 / 现场推理',note:'记忆碎片 / 调查'}[o.type]||'校园见闻';
     $('world-dialog-text').textContent=o.type==='shop'?(choice||o.text):result.text;
