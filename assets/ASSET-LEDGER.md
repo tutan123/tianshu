@@ -61,30 +61,42 @@
 
 ## 4. 参考素材 · 不参与运行（CC0，但占 97% 文件数）
 
-| 目录 | 文件数 | 体积 | 说明 |
-| --- | ---: | ---: | --- |
-| `assets/kenney-nature/Isometric/` | 1876 | — | Kenney 官方等距预览图 |
-| `assets/kenney-nature/Side/` | 462 | — | Kenney 官方侧视预览图（**可用于核对颜色，我核验色彩空间时用过**） |
-| `assets/kenney-nature/Preview.png`、`Sample.png`、`Instructions.url`、`Kenney.url`、`Patreon.url` | 5 | — | 套件说明与快捷方式 |
-| `assets/kenney-furniture/` 同上结构 | 706 | — | 同上 |
-| **合计** | **2350** | **6.70 MB** | 全部 CC0 |
+**这些是什么、为什么这么多**：两个 Kenney 套件一共 **469 个模型**（`Models/GLTF format/` 里的 GLB 数量）。Kenney 的发布包自带一份**可视化目录**，给每个模型渲染：
+
+- `Isometric/` —— **每个模型 4 张**，分别是从东北 / 西北 / 东南 / 西南四个方向看的等距视图。
+  4 × 469 = **1876**，与文件名后缀 `_NE/_NW/_SE/_SW` 的统计完全吻合。
+- `Side/` —— 每个模型 1 张侧视图，共 **462** 张（469 个模型里有 7 个没提供侧视图）。
+
+所以数量不是错误，也不是重复下载：这是 Kenney 给游戏开发者挑选素材用的图鉴，方便一眼看完整个套件。单张平均只有 ~2.8 KB。
+
+| 目录 | 文件数 | 说明 |
+| --- | ---: | --- |
+| `kenney-nature/Isometric/` + `kenney-furniture/Isometric/` | 1876 | 469 模型 × 4 个罗盘方向 |
+| `kenney-nature/Side/` + `kenney-furniture/Side/` | 462 | 每模型 1 张侧视图 |
+| 两个套件的 `Preview.png`、`Sample.png`、`Instructions.url`、`Kenney.url`、`Patreon.url`、`License.txt` | 12 | 套件说明与许可 |
+| **合计** | **2350** | **6.70 MB**，全部 CC0 |
 
 **许可状态没问题**：两个套件的 `License.txt` 均被跟踪，CC0 也不要求署名。
 
-**但这是仓库里最大的结构性冗余**：2350 个文件、6.70 MB，占全部 2425 个跟踪文件的 **97%**，而游戏运行时一个都不加载（运行时只用 `assets/kenney-meshes.js`）。
+**但这是仓库里最大的结构性冗余**：2350 个文件、6.70 MB，占全部 2425 个跟踪文件的 **97%**，而游戏运行时一个都不加载（运行时只用 `assets/kenney-meshes.js` 里的 38 个模型）。
 
 **并且它们对可复现性没有帮助**：转换脚本读的是 `Models/GLTF format/*.glb`，而 `.gitignore` 已经把 `Models/` 排除在版本控制之外 —— 也就是说**一份全新 clone 本来就无法重跑转换**，预览图并不能补上这个缺口。
 
 **建议（需用户决定，我没有擅自删除）**：
 
 ```powershell
-# 保留 License.txt，移除预览图（可随时从本地 kenney-*.zip 恢复）
-git rm -r --cached assets/kenney-nature/Isometric assets/kenney-nature/Side `
+# 方案 A：只删 Isometric/（1876 个文件，占大头），保留 Side/ 用于查色。
+git rm -r assets/kenney-nature/Isometric assets/kenney-furniture/Isometric
+git commit -m "Drop Kenney isometric preview renders the runtime never loads"
+
+# 方案 B：连 Side/ 一起删（2350 个文件里去掉 2342 个）。
+git rm -r assets/kenney-nature/Isometric assets/kenney-nature/Side `
                  assets/kenney-furniture/Isometric assets/kenney-furniture/Side
 git commit -m "Drop Kenney preview renders that the runtime never loads"
 ```
 
-如果希望保留少量用于核对颜色，建议只留 `Side/`（462 个文件，侧视图对查色最有用），删掉 `Isometric/`（1876 个，占大头）。
+两种方案都保留 `License.txt`，也都能从本地 `assets/kenney-*.zip` 恢复（zip 被 gitignore，但仍在磁盘上）。
+我的建议是**方案 A**：`Side/` 那 462 张侧视图对核对颜色有实际价值 —— 本轮确认 Kenney 色彩空间 bug 时就是用它做的对照。
 
 **另一个缺口**：`Models/` 被 gitignore，意味着转换流程不可复现。要么把 `Models/` 的 GLB 纳入版本控制（约 7 MB 原始资产），要么在文档里写明"重新转换需先自行从 kenney.nl 下载"。`assets/SOURCES.md` 已经写了后者，这是可接受的取舍 —— 但值得明确记录。
 
