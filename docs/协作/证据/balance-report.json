@@ -1,0 +1,150 @@
+{
+  "A 全攻不防（naive）": {
+    "name": "A 全攻不防（naive）",
+    "log": [
+      {
+        "round": 1,
+        "played": "strike+strike+strike",
+        "turn": 2,
+        "hp": 69,
+        "enemy": 81
+      },
+      {
+        "round": 2,
+        "played": "strike+strike+strike",
+        "turn": 3,
+        "hp": 28,
+        "enemy": 42
+      },
+      {
+        "round": 3,
+        "played": "strike+strike+strike",
+        "ended": true,
+        "outcome": "fail"
+      }
+    ],
+    "errors": [],
+    "start": {
+      "hp": 91,
+      "maxHp": 91,
+      "enemy": 120,
+      "maxEnemy": 120
+    },
+    "outcome": "fail"
+  },
+  "B 读招+超频（验收套件打法）": {
+    "name": "B 读招+超频（验收套件打法）",
+    "log": [
+      {
+        "round": 1,
+        "played": "assist+read+strike+strike+strike",
+        "turn": 2,
+        "hp": 74,
+        "enemy": 73
+      },
+      {
+        "round": 2,
+        "played": "strike+strike+strike",
+        "turn": 3,
+        "hp": 33,
+        "enemy": 34
+      }
+    ],
+    "errors": [],
+    "start": {
+      "hp": 91,
+      "maxHp": 91,
+      "enemy": 120,
+      "maxEnemy": 120
+    },
+    "outcome": "success"
+  },
+  "C 两次格挡（规划打法）": {
+    "name": "C 两次格挡（规划打法）",
+    "log": [
+      {
+        "round": 1,
+        "played": "strike+strike+strike",
+        "turn": 2,
+        "hp": 69,
+        "enemy": 81
+      },
+      {
+        "round": 2,
+        "played": "guard+strike+strike",
+        "turn": 3,
+        "hp": 40,
+        "enemy": 55
+      },
+      {
+        "round": 3,
+        "played": "guard+strike+strike",
+        "turn": 4,
+        "hp": 8,
+        "enemy": 29
+      }
+    ],
+    "errors": [],
+    "start": {
+      "hp": 91,
+      "maxHp": 91,
+      "enemy": 120,
+      "maxEnemy": 120
+    },
+    "outcome": "success"
+  },
+  "D 纯格挡（不可能赢）": {
+    "name": "D 纯格挡（不可能赢）",
+    "log": [
+      {
+        "round": 1,
+        "played": "guard+guard+guard",
+        "turn": 2,
+        "hp": 91,
+        "enemy": 120
+      },
+      {
+        "round": 2,
+        "played": "guard+guard+guard",
+        "turn": 3,
+        "hp": 86,
+        "enemy": 120
+      },
+      {
+        "round": 3,
+        "played": "guard+guard+guard",
+        "turn": 4,
+        "hp": 78,
+        "enemy": 120
+      },
+      {
+        "round": 4,
+        "played": "guard+guard+guard",
+        "turn": 5,
+        "hp": 45,
+        "enemy": 120
+      },
+      {
+        "round": 5,
+        "played": "guard+guard+guard",
+        "turn": 6,
+        "hp": 11,
+        "enemy": 120
+      },
+      {
+        "round": 6,
+        "played": "guard+guard+guard",
+        "ended": true,
+        "outcome": "fail"
+      }
+    ],
+    "errors": [],
+    "start": {
+      "hp": 91,
+      "maxHp": 91,
+      "enemy": 120,
+      "maxEnemy": 120
+    },
+    "outcome": "fail"
+  }
+}

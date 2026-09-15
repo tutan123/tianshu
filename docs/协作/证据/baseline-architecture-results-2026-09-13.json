@@ -1,0 +1,170 @@
+{
+  "success": true,
+  "testedAt": "2026-09-13T00:51:40.852Z",
+  "checks": [
+    "Eleven exterior buildings including annexes use detailed architecture",
+    "Eight different architectural types are present",
+    "Every building has modeled architectural details",
+    "Desktop campus canvas contains a visible nonblank scene",
+    "Spawn outside dorm is walkable",
+    "Route reaches remodeled dorm entrance",
+    "Remodeled entrance opens dorm",
+    "Spawn outside hall is walkable",
+    "Route reaches remodeled hall entrance",
+    "Remodeled entrance opens hall",
+    "Foreground laboratory fades instead of hiding the player",
+    "Spawn outside library is walkable",
+    "Route reaches remodeled library entrance",
+    "Remodeled entrance opens library",
+    "Spawn outside lake is walkable",
+    "Route reaches remodeled lake entrance",
+    "Remodeled entrance opens lake",
+    "Spawn outside gym is walkable",
+    "Route reaches remodeled gym entrance",
+    "Remodeled entrance opens gym",
+    "Spawn outside lab is walkable",
+    "Route reaches remodeled lab entrance",
+    "Remodeled entrance opens lab",
+    "Spawn outside gate is walkable",
+    "Route reaches remodeled gate entrance",
+    "Remodeled entrance opens gate",
+    "Spawn outside plaza is walkable",
+    "Route reaches remodeled plaza entrance",
+    "Remodeled entrance opens plaza",
+    "Night architecture is nonblank and remains readable",
+    "Rain remains active with detailed architecture",
+    "Mobile main scene and minimap are nonblank",
+    "Main view and minimap independently contain rendered geometry",
+    "Lake wave troughs remain above the campus ground",
+    "Mobile interface stays within viewport",
+    "Architecture has no uncaught page errors",
+    "Architecture remains offline without external asset requests",
+    "Mobile campus overview includes the entire woodland and east campus",
+    "Overview camera fitting does not wash the campus out in distance fog"
+  ],
+  "errors": [],
+  "architecture": [
+    {
+      "kind": "dorm",
+      "parts": 564,
+      "features": [
+        "recessed-windows",
+        "open-balconies",
+        "laundry",
+        "roof-dormers"
+      ],
+      "batches": 14
+    },
+    {
+      "kind": "dorm",
+      "parts": 586,
+      "features": [
+        "recessed-windows",
+        "open-balconies",
+        "laundry",
+        "roof-dormers"
+      ],
+      "batches": 14
+    },
+    {
+      "kind": "dorm",
+      "parts": 446,
+      "features": [
+        "recessed-windows",
+        "open-balconies",
+        "laundry",
+        "roof-dormers"
+      ],
+      "batches": 14
+    },
+    {
+      "kind": "hall",
+      "parts": 60,
+      "features": [
+        "recessed-windows",
+        "original-blender-clocktower",
+        "entrance-colonnade",
+        "stone-pilasters",
+        "campus-clock"
+      ],
+      "batches": 12
+    },
+    {
+      "kind": "library",
+      "parts": 423,
+      "features": [
+        "recessed-windows",
+        "clerestory-atrium",
+        "terraced-roof",
+        "reading-bays"
+      ],
+      "batches": 14
+    },
+    {
+      "kind": "lab",
+      "parts": 315,
+      "features": [
+        "recessed-windows",
+        "sun-fins",
+        "service-roof",
+        "solar-canopy"
+      ],
+      "batches": 11
+    },
+    {
+      "kind": "gate",
+      "parts": 190,
+      "features": [
+        "recessed-windows",
+        "sawtooth-workshop",
+        "striped-awning",
+        "service-shutters"
+      ],
+      "batches": 12
+    },
+    {
+      "kind": "gate",
+      "parts": 214,
+      "features": [
+        "recessed-windows",
+        "sawtooth-workshop",
+        "striped-awning",
+        "service-shutters"
+      ],
+      "batches": 12
+    },
+    {
+      "kind": "lake",
+      "parts": 196,
+      "features": [
+        "recessed-windows",
+        "timber-bracing",
+        "standing-seam-roof",
+        "boat-racks"
+      ],
+      "batches": 12
+    },
+    {
+      "kind": "gym",
+      "parts": 273,
+      "features": [
+        "recessed-windows",
+        "barrel-roof",
+        "exposed-ribs",
+        "high-windows"
+      ],
+      "batches": 12
+    },
+    {
+      "kind": "plaza",
+      "parts": 231,
+      "features": [
+        "recessed-windows",
+        "club-loggia",
+        "roof-pergola",
+        "noticeboards"
+      ],
+      "batches": 15
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "saveRestore": {
+    "restoreAccepted": true,
+    "progressLabel": "08 / 10",
+    "questTitle": "未被演算的那一拳",
+    "level": "Lv.1"
+  },
+  "combat": {
+    "log": [
+      {
+        "before": {
+          "turn": 1,
+          "hp": 75,
+          "enemy": 85,
+          "energy": 3,
+          "block": 0,
+          "enemyShield": 0
+        },
+        "after": {
+          "turn": 2,
+          "hp": 63,
+          "enemy": 52
+        }
+      },
+      {
+        "before": {
+          "turn": 2,
+          "hp": 63,
+          "enemy": 52,
+          "energy": 3,
+          "block": 0,
+          "enemyShield": 0
+        },
+        "after": {
+          "turn": 3,
+          "hp": 44,
+          "enemy": 19
+        }
+      }
+    ]
+  },
+  "errors": [],
+  "enteredNode": "duel",
+  "gameKind": "combat",
+  "finalActive": {
+    "phase": "result",
+    "outcome": "success",
+    "done": [
+      "intro",
+      "roll",
+      "math",
+      "gym",
+      "roof",
+      "market",
+      "lab",
+      "hearing",
+      "duel"
+    ],
+    "text": "你看穿了他的第三次变招，擦着他的肩膀冲出包围。远处传来苏祁的声音。陆沉没有再追：“下次见，宿主。”"
+  }
+}

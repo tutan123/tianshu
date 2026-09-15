@@ -1,0 +1,110 @@
+{
+  "url": "file:///G:/Projects/Agent/Agent%20Cli/%E5%A4%A9%E6%9E%A2/%E5%A4%A9%E6%9E%A2-WebDemo-v3.0/index.html",
+  "checks": [
+    {
+      "ok": true,
+      "name": "所有全局模块已注册",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "name": "三维场景初始化成功"
+    },
+    {
+      "ok": true,
+      "name": "11 栋建筑已构建",
+      "detail": "11"
+    },
+    {
+      "ok": true,
+      "name": "桌面端无水平溢出",
+      "detail": "scrollW=1440 innerW=1440"
+    },
+    {
+      "ok": true,
+      "name": "步行出生点可通行",
+      "detail": "[-22,0,-5]"
+    },
+    {
+      "ok": true,
+      "name": "主画布有真实渲染内容",
+      "detail": "{\"colors\":361,\"bright\":15921}"
+    },
+    {
+      "ok": true,
+      "name": "八处室外入口均可寻路抵达",
+      "detail": "[]"
+    },
+    {
+      "ok": true,
+      "name": "可进入室内（dorm）",
+      "detail": "dorm"
+    },
+    {
+      "ok": true,
+      "name": "室内互动点均可寻路",
+      "detail": "[]"
+    },
+    {
+      "ok": true,
+      "name": "雨景开启后雨线可见"
+    },
+    {
+      "ok": true,
+      "name": "移动端无水平溢出",
+      "detail": "scrollW=390"
+    },
+    {
+      "ok": true,
+      "name": "桌面步行模式帧率可接受",
+      "detail": "116 fps"
+    }
+  ],
+  "errors": [],
+  "consoleErrors": [],
+  "failedRequests": [],
+  "warnings": [],
+  "screenshots": [
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\01-overview-desktop.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\02-walk-dorm.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\03-walk-library.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\04-interior-dorm.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\05-walk-night.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\06-walk-rain.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\07-mobile-walk.png",
+    "C:\\Users\\82374\\AppData\\Local\\Temp\\dsh-pwtest\\shots\\08-mobile-overview.png"
+  ],
+  "bootMs": 677,
+  "overlay": {
+    "scrollW": 1440,
+    "innerW": 1440,
+    "scrollH": 960,
+    "innerH": 960,
+    "fixed": 21
+  },
+  "interiorReach": [
+    {
+      "id": "dorm-stamp",
+      "routed": true,
+      "arrived": false
+    },
+    {
+      "id": "dorm-chest",
+      "routed": true,
+      "arrived": false
+    },
+    {
+      "id": "dorm-npc",
+      "routed": true,
+      "arrived": false
+    },
+    {
+      "id": "dorm-exit",
+      "routed": true,
+      "arrived": true
+    }
+  ],
+  "mobileOverflow": [],
+  "fps": 116,
+  "success": true
+}
