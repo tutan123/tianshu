@@ -5,6 +5,18 @@ globalThis.WorldArt = (() => {
   function box(root,w,h,d,color,x,y,z) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(color)); mesh.position.set(x,y,z); mesh.castShadow=mesh.receiveShadow=true; root.add(mesh); return mesh;
   }
+  // 目标图（.dream-loop/target.png）里的植被是绿色系：深绿针叶、中绿阔叶、少量黄绿；而 Kenney
+  // 的叶材质本身是青绿（#29C9AB），上屏以后整片校园偏冷。按模型名做确定性混色把树冠落到绿色
+  // 区间，同时保留同批树之间的色差；只改"绿多于红"的部件，所以树皮（红多于绿）和花朵不受影响。
+  const FOLIAGE_TARGET = '#3f7f4a';
+  const tintedFoliage = name => /^(tree_|plant_|grass_)/.test(name);
+  function tintFoliage(group, name) {
+    const target = new THREE.Color(FOLIAGE_TARGET);
+    if (THREE.ColorManagement.legacyMode) target.convertSRGBToLinear();
+    let hash = 0; for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    const amount = .55 + (hash % 8) / 8 * .33;      // .55 ~ .88，逐模型不同，避免一片同色
+    for (const m of group.children) { const color = m.material.color; if (color.g > color.r) m.material.color.copy(color).lerp(target, amount); }
+  }
   function asset(root,name,x,y,z,height=1,rotation=0) {
     if (!prototypes[name] && globalThis.KENNEY_MESHES?.[name]) {
       const g = new THREE.Group();
@@ -16,6 +28,7 @@ globalThis.WorldArt = (() => {
       // game was rendering washed out because of this, which also made the interiors
       // look overexposed. Convert on the way in so the source colours survive.
       for (const part of KENNEY_MESHES[name]) { const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(part.positions,3)); geo.computeVertexNormals(); const color=new THREE.Color().fromArray(part.color).convertSRGBToLinear(); const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({ color,roughness:.8 })); m.castShadow=m.receiveShadow=true; g.add(m); }
+      if (tintedFoliage(name)) tintFoliage(g, name);
       const b=new THREE.Box3().setFromObject(g), size=b.getSize(new THREE.Vector3()), center=b.getCenter(new THREE.Vector3());
       g.children.forEach(m=>{ m.geometry.translate(-center.x,-b.min.y,-center.z); m.geometry.scale(1/size.y,1/size.y,1/size.y); }); prototypes[name]=g;
     }

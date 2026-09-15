@@ -1,23 +1,53 @@
 'use strict';
 globalThis.CampusBuildings = (() => {
   const materials = {}, geometries = {};
-  const colors = { plaster:'#e5e9e6', concrete:'#b5bec3', brick:'#ab7064', dark:'#394955', roof:'#57717c', wood:'#b59270', glass:'#547f98', warm:'#849fa6', metal:'#69858c', foliage:'#568567', soil:'#4c6652', red:'#b45b63', blue:'#648da8', paving:'#c2c8cb' };
+  const colors = { plaster:'#ddd5c4', concrete:'#b8b2a4', brick:'#ab7064', dark:'#394955', roof:'#57717c', wood:'#b59270', glass:'#4a7189', warm:'#849fa6', metal:'#69858c', foliage:'#568567', soil:'#4c6652', red:'#b45b63', blue:'#648da8', paving:'#c2c8cb', grass:'#6f8f5c', trim:'#f4f2ea' };
+  // 确定性伪随机。贴图必须逐轮完全一致，否则 dream-loop 的逐轮截图对比会被贴图噪声干扰，
+  // 看不出真正的改动。
+  function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
   function texture(kind) {
     if (typeof document === 'undefined') return null;
-    const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const c=canvas.getContext('2d');
-    c.fillStyle=colors[kind];c.fillRect(0,0,256,256);
+    const size=512, canvas=document.createElement('canvas');canvas.width=canvas.height=size;const c=canvas.getContext('2d');
+    c.fillStyle=colors[kind];c.fillRect(0,0,size,size);
+    const rand=rng(kind.length*7919+104729);
     if(kind==='brick'){
       c.fillStyle='#e0beb088';
-      for(let y=0;y<256;y+=16){c.fillRect(0,y,256,1);for(let x=(y%32?16:0);x<256;x+=32)c.fillRect(x,y,1,16);}
+      for(let y=0;y<size;y+=32){c.fillRect(0,y,size,2);for(let x=(y%64?32:0);x<size;x+=64)c.fillRect(x,y,2,32);}
+      for(let i=0;i<5200;i++){c.fillStyle=rand()>.5?'#ffffff10':'#3a2a2611';c.fillRect(rand()*size|0,rand()*size|0,2,1);}
+    }else if(kind==='paving'){
+      // 4×4 石板：每块独立明度与冷暖、缝线、倒角高光、颗粒、磨损斑。
+      // 原来的贴图只是一层 40% 透明度的灰色网格，铺上去等于没有纹理，地面因此发白。
+      const n=4, s=size/n;
+      for(let gy=0;gy<n;gy++)for(let gx=0;gx<n;gx++){
+        const l=(rand()-.5)*32, warm=(rand()-.5)*10;
+        c.fillStyle=`rgb(${Math.round(180+l+warm)},${Math.round(183+l)},${Math.round(179+l-warm*.6)})`;
+        c.fillRect(gx*s,gy*s,s,s);
+      }
+      for(let i=0;i<11000;i++){c.fillStyle=rand()>.5?'#ffffff12':'#2b3a3c12';c.fillRect(rand()*size|0,rand()*size|0,1+(rand()*2|0),1);}
+      for(let i=0;i<28;i++){const x=rand()*size,y=rand()*size,r=16+rand()*50,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'#57696a14');g.addColorStop(1,'#57696a00');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill();}
+      for(let i=0;i<=n;i++){
+        const p=i*s;
+        // 缝线跨在网格线上，并额外补一段让贴图接缝处也是完整的缝，平铺后看不出边界。
+        for(const x of(p===0?[0,size-1]:[p-1])){
+          c.fillStyle='#6c7879';c.fillRect(x,0,3,size);c.fillRect(0,x,size,3);
+          c.fillStyle='#ffffff66';c.fillRect(x+3,0,1,size);c.fillRect(0,x+3,size,1);
+        }
+      }
+    }else if(kind==='grass'){
+      // 草地：色块层次 + 草叶笔触 + 零星草花。目标图里的草坪是有明暗斑块的，不是一整片纯色。
+      for(let i=0;i<70;i++){const x=rand()*size,y=rand()*size,r=20+rand()*70,g=c.createRadialGradient(x,y,0,x,y,r);
+        g.addColorStop(0,rand()>.5?'#86ab6a44':'#54764a44');g.addColorStop(1,'#00000000');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,7);c.fill();}
+      for(let i=0;i<5200;i++){const x=rand()*size,y=rand()*size,h=2+rand()*4;
+        c.strokeStyle=['#7fa963','#69915377','#8fbc6b','#5d8250'][i%4];c.lineWidth=1;c.beginPath();c.moveTo(x,y);c.lineTo(x+(rand()-.5)*2,y-h);c.stroke();}
+      for(let i=0;i<90;i++){c.fillStyle=rand()>.5?'#e9e7a8':'#e8f0c0';c.fillRect(rand()*size|0,rand()*size|0,2,2);}
     }else{
-      for(let i=0;i<1800;i++){const x=(i*73)%256,y=(i*37+Math.floor(i/256)*19)%256;c.fillStyle=i%2?'#ffffff13':'#2337440b';c.fillRect(x,y,2,2);}
-      if(kind==='paving'){c.fillStyle='#88999b66';for(let y=0;y<256;y+=64)c.fillRect(0,y,256,2);for(let x=0;x<256;x+=64)c.fillRect(x,0,2,256);}
+      for(let i=0;i<1800;i++){const x=(i*73)%size,y=(i*37+Math.floor(i/size)*19)%size;c.fillStyle=i%2?'#ffffff13':'#2337440b';c.fillRect(x,y,2,2);}
     }
     const t=new THREE.CanvasTexture(canvas);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;if(kind==='brick')t.repeat.set(3,2);return t;
   }
   function material(key) {
     if(!materials[key]){
-      const glass=key==='glass'||key==='warm', map=['brick','plaster','paving'].includes(key)?texture(key):null;
+      const glass=key==='glass'||key==='warm', map=['brick','plaster','paving','grass'].includes(key)?texture(key):null;
       materials[key]=new THREE.MeshStandardMaterial({color:map?'#ffffff':colors[key]||key,map,roughness:glass?.24:.82,metalness:glass?.25:0,emissive:glass?'#ffce88':'#000000',emissiveIntensity:0});
     }
     return materials[key];
@@ -41,9 +71,11 @@ globalThis.CampusBuildings = (() => {
     }
     function windowPane(px,py,pz,ww=1.2,wh=1.45,side=0,lit=false){
       const face=(key,bw,bh,bd,dx,dy,dz)=>{const cs=Math.cos(side),sn=Math.sin(side);box(key,bw,bh,bd,px+dx*cs+dz*sn,py+dy,pz-dx*sn+dz*cs,[0,side,0]);};
+      // 窗框用亮色 trim，不再是和墙面同一个 plaster。两者同色时窗户在立面上完全没有对比，
+      // 远看就是一块白墙贴着几个蓝方块；目标图靠暖墙 + 亮白框 + 深色玻璃的明暗层次把窗户读出来。
       face('dark',ww+.18,wh+.18,.13,0,0,0);face(lit?'warm':'glass',ww,wh,.08,0,0,.09);
-      for(const dx of[-ww/2,0,ww/2])face('plaster',.065,wh+.13,.15,dx,0,.16);
-      for(const dy of[-wh/2,wh/2])face('plaster',ww+.15,.07,.15,0,dy,.16);
+      for(const dx of[-ww/2,0,ww/2])face('trim',.065,wh+.13,.15,dx,0,.16);
+      for(const dy of[-wh/2,wh/2])face('trim',ww+.15,.07,.15,0,dy,.16);
       face('concrete',ww+.32,.12,.4,0,-wh/2-.05,.13);
     }
     function windows(rows=2,step=2.35){

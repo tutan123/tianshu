@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-14T14:53:36.917Z",
+  "testedAt": "2026-09-15T17:18:12.457Z",
   "checks": [
     "Completed investigation is not counted as a chest",
     "Completed room investigation is shown as archived",

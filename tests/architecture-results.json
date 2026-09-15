@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-14T14:50:10.946Z",
+  "testedAt": "2026-09-15T17:14:55.309Z",
   "checks": [
     "Eleven exterior buildings including annexes use detailed architecture",
     "Eight different architectural types are present",
@@ -53,7 +53,7 @@
         "laundry",
         "roof-dormers"
       ],
-      "batches": 14
+      "batches": 15
     },
     {
       "kind": "dorm",
@@ -64,7 +64,7 @@
         "laundry",
         "roof-dormers"
       ],
-      "batches": 14
+      "batches": 15
     },
     {
       "kind": "dorm",
@@ -75,7 +75,7 @@
         "laundry",
         "roof-dormers"
       ],
-      "batches": 14
+      "batches": 15
     },
     {
       "kind": "hall",
@@ -98,7 +98,7 @@
         "terraced-roof",
         "reading-bays"
       ],
-      "batches": 14
+      "batches": 15
     },
     {
       "kind": "lab",
@@ -109,7 +109,7 @@
         "service-roof",
         "solar-canopy"
       ],
-      "batches": 11
+      "batches": 12
     },
     {
       "kind": "gate",
@@ -120,7 +120,7 @@
         "striped-awning",
         "service-shutters"
       ],
-      "batches": 12
+      "batches": 13
     },
     {
       "kind": "gate",
@@ -131,7 +131,7 @@
         "striped-awning",
         "service-shutters"
       ],
-      "batches": 12
+      "batches": 13
     },
     {
       "kind": "lake",
@@ -142,7 +142,7 @@
         "standing-seam-roof",
         "boat-racks"
       ],
-      "batches": 12
+      "batches": 13
     },
     {
       "kind": "gym",
@@ -153,7 +153,7 @@
         "exposed-ribs",
         "high-windows"
       ],
-      "batches": 12
+      "batches": 13
     },
     {
       "kind": "plaza",
@@ -164,7 +164,7 @@
         "roof-pergola",
         "noticeboards"
       ],
-      "batches": 15
+      "batches": 16
     }
   ]
 }

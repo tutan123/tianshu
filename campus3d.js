@@ -10,7 +10,7 @@ globalThis.Campus3D = (() => {
   let people = [], windowMaterials = [], rainPositions, rainGeometry, worldState = { available: [], selected: 'dorm', night: false, motion: true }, waterBase, miniRect;
   const T = () => window.THREE;
   const mat = (c, roughness = .85) => new THREE.MeshStandardMaterial({ color: c, roughness });
-  let white, stone, roofMat, glass, pavement, road, brass;
+  let white, stone, roofMat, glass, pavement, road, brass, grass;
   const geometries = {};
   const previews = {};
   const architectureVisuals = [];
@@ -19,9 +19,13 @@ globalThis.Campus3D = (() => {
   let surveying=false, fogBaseNear=260;
   const worldObjects = () => zone ? [...(floor===1&&Exploration.regions[zone]?Exploration.objects(zone):[]),...(globalThis.CampusRooms?.objects(zone,floor)||[]),...(globalThis.OffCampus?.objects(zone,floor)||[])] : [...Exploration.outdoor, ...Object.entries(entries).map(([id,[x,z]])=>({id:id+'-door',type:'door',name:'进入 · '+(globalThis.CampusRooms?.name(id)||Exploration.regions[id].name),x,z,destination:id})), ...(globalThis.OffCampus?.outdoor()||[])];
   function mesh(geo, material, x, y, z, parent = scene) { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; }
+  // 带程序化贴图的地面材质 -> 每世界单位的 UV 密度。顶面按世界坐标取 UV，
+  // 这样相邻地块的贴图能接上，不会各铺各的。
+  const worldUv = new Map();
   function box(w, h, d, material, x, y, z, parent) {
     const geometry=new THREE.BoxGeometry(w,h,d);
-    if(material===pavement){const {position,normal,uv}=geometry.attributes;for(let i=0;i<position.count;i++)if(Math.abs(normal.getY(i))>.5)uv.setXY(i,(position.getX(i)+x)*.22,(position.getZ(i)+z)*.22);}
+    const density=worldUv.get(material);
+    if(density){const {position,normal,uv}=geometry.attributes;for(let i=0;i<position.count;i++)if(Math.abs(normal.getY(i))>.5)uv.setXY(i,(position.getX(i)+x)*density,(position.getZ(i)+z)*density);}
     return mesh(geometry,material,x,y,z,parent);
   }
   function cylinder(r, h, material, x, y, z, parent, count = 16) { return mesh(new THREE.CylinderGeometry(r, r, h, count), material, x, y, z, parent); }
@@ -68,7 +72,7 @@ globalThis.Campus3D = (() => {
         if(!part.ghost){
           part.ghost=part.original.clone();
           part.ghost.transparent=true;
-          part.ghost.opacity=.3;
+          part.ghost.opacity=.2;
           // Keep depth writes ON. With depthWrite off every surface of the building
           // blended with every other one — front faces, back faces and interior
           // details at once — so the occluder turned into a muddy wash with the
@@ -94,9 +98,17 @@ globalThis.Campus3D = (() => {
     return g;
   }
   function bench(x, z, rotation = 0) {
+    // 目标图里是厚实的木板长椅：座面和靠背各有可见木条，腿是深色金属。原来只有两块薄板加两根
+    // 细柱，远看就是一条线，撑不起广场的尺度。
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotation; scene.add(g);
-    box(2.1, .17, .7, roofMat, 0, .65, 0, g); box(2.1, .75, .12, roofMat, 0, 1, -.3, g);
-    box(.14, .6, .65, brass, -.8, .3, 0, g); box(.14, .6, .65, brass, .8, .3, 0, g);
+    const wood = mat('#a9773f'), frame = mat('#3d4a4e');
+    for (const dz of [-.3, -.1, .1]) box(2.2, .09, .17, wood, 0, .62, dz, g);
+    for (const dy of [.8, .98, 1.16]) box(2.2, .09, .13, wood, 0, dy, -.37, g);
+    for (const dx of [-.95, .95]) {
+      box(.1, 1.28, .1, frame, dx, .6, -.37, g);
+      box(.1, .6, .1, frame, dx, .3, .24, g);
+      box(.1, .09, .62, frame, dx, .58, -.06, g);
+    }
   }
   function lamp(x, z) {
     cylinder(.08, 3.8, brass, x, 1.9, z, scene, 6);
@@ -145,8 +157,11 @@ globalThis.Campus3D = (() => {
   }
   function build() {
     white = mat('#e7ece9'); stone = mat('#b5c0c1'); roofMat = mat('#996e67'); glass = mat('#548da2', .25); pavement = CampusBuildings.material('paving'); road = mat('#727d87'); brass = mat('#3f4b43');
-    box(180, .3, 180, mat('#719375'), 0, -.4, 0);
-    box(86, .25, 79, mat('#8daa79'), 0, -.1, 0);
+    // 草地改用带纹理的材质。原来两片草坪是纯色平铺，是画面里最大的一块"没有材质"的区域。
+    grass = CampusBuildings.material('grass');
+    worldUv.set(pavement, .22); worldUv.set(grass, .3);
+    box(180, .3, 180, grass, 0, -.4, 0);
+    box(86, .25, 79, grass, 0, -.1, 0);
     box(7, .12, 78, pavement, 0, .04, 0); box(82, .12, 5, pavement, 0, .04, 9); box(82, .12, 5, pavement, 0, .04, -8);
     box(4, .12, 68, pavement, -12, .04, -2); box(4, .12, 68, pavement, 14, .04, -2); box(4, .1, 68, pavement, 34, .04, -1);
     box(89, .08, 6, road, 0, .03, 39);
@@ -201,7 +216,7 @@ globalThis.Campus3D = (() => {
       camera = new THREE.PerspectiveCamera(42, 1, .2, 2000);camera.layers.enable(1); miniCamera = new THREE.OrthographicCamera(worldBounds.minX-3,worldBounds.maxX+3,-worldBounds.minZ+3,-worldBounds.maxZ-3,.1,300); miniCamera.position.set(0,150,0); miniCamera.up.set(0,0,-1); miniCamera.lookAt(0,0,0);
       target = new THREE.Vector3(0, 0, 1); desiredTarget = target.clone();
       hemi = new THREE.HemisphereLight('#e3eeff', '#7f8973', 1.15); scene.add(hemi);
-      sun = new THREE.DirectionalLight('#fff0cd', 2.4); sun.position.set(-30, 55, 30); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -55; sun.shadow.camera.right = 55; sun.shadow.camera.top = 55; sun.shadow.camera.bottom = -55; sun.shadow.camera.far = 150; sun.shadow.bias = -.0005; sun.shadow.normalBias = .035; scene.add(sun);
+      sun = new THREE.DirectionalLight('#fff0cd', 2.4); sun.position.set(-30, 55, 30); sun.castShadow = true; sun.shadow.mapSize.set(3072, 3072); sun.shadow.camera.left = -55; sun.shadow.camera.right = 55; sun.shadow.camera.top = 55; sun.shadow.camera.bottom = -55; sun.shadow.camera.far = 150; sun.shadow.bias = -.0004; sun.shadow.normalBias = .018; scene.add(sun);
       build();
       campusRoot=new THREE.Group();campusRoot.name='Campus_Exterior';
       for(const child of [...scene.children])if(child!==sun&&child!==hemi&&child!==player.group&&child!==ringTarget)campusRoot.add(child);
@@ -220,8 +235,9 @@ globalThis.Campus3D = (() => {
     if (!ready) return; weather = value; worldNight = worldState.night; for (const key of Object.keys(previews)) delete previews[key];
     const night = value === 'night' || value === 'rain' || value === 'auto' && worldNight, wet = value === 'rain' || value === 'auto' && worldNight;
     scene.background.set(night ? '#394752' : '#c7dce3'); scene.fog.color.copy(scene.background); fogBaseNear=night?190:260; scene.fog.near=fogBaseNear; scene.fog.far = 450;
-    hemi.intensity = night ? .3 : .85; sun.intensity = night ? .2 : 1.6; sun.color.set(night ? '#b2ccd9' : '#fff6e9'); renderer.toneMappingExposure = night ? .74 : .96;
-    rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 4 : .2;
+    // 白天拉大主光/环境光的比例。原来 .85 的环境光几乎把方向性冲掉了，长椅和树在地面上
+    // 留不下可辨认的影子，画面因此显得平。目标图里影子是明确的构图元素。
+    hemi.intensity = night ? .3 : .52; sun.intensity = night ? .2 : 2.15; sun.color.set(night ? '#b2ccd9' : '#fff6e9'); renderer.toneMappingExposure = night ? .74 : .86;    rain.visible = wet; for (const m of lamps) m.emissiveIntensity = night ? 4 : .2;
     // Window materials are shared per building kind — architecture.test.cjs asserts two
     // dorm blocks use the same material instance — so stagger the lit windows by
     // material index instead of cloning a material per building. Buildings of the same
