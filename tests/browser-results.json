@@ -1,5 +1,5 @@
 {
-  "testedAt": "2026-09-16T13:56:14.038Z",
+  "testedAt": "2026-09-16T14:04:12.867Z",
   "checks": [
     "Eight projected campus markers",
     "WebGL framebuffer has varied rendered pixels",
@@ -72,7 +72,7 @@
     "duel",
     "finale"
   ],
-  "pixelColors": 45,
+  "pixelColors": 49,
   "errors": [],
   "success": true
 }

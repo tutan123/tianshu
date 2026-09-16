@@ -127,8 +127,15 @@ globalThis.Campus3D = (() => {
       WorldArt.asset(scene, kind, px, .06, pz, .55 + rand() * .38, rand() * 6.283);
     }
   }
-  function bench(x, z, rotation = 0) {
-    // 目标图里是厚实的木板长椅：座面和靠背各有可见木条，腿是深色金属。原来只有两块薄板加两根
+  // 铺装收边。目标图的广场靠收边和色带把大片铺装分出层次；这里整片是同一块均匀石板，
+  // 读不出道路边界。石带抬高约 4.5cm —— 和路面顶面共面会 z-fighting。
+  const kerb = mat('#a49f93');
+  function edgeBand(x, z, w, d, thickness = .55) {
+    const y = .12, h = .05;
+    if (w > d) { box(w, h, thickness, kerb, x, y, z - d / 2 + thickness / 2); box(w, h, thickness, kerb, x, y, z + d / 2 - thickness / 2); }
+    else { box(thickness, h, d, kerb, x - w / 2 + thickness / 2, y, z); box(thickness, h, d, kerb, x + w / 2 - thickness / 2, y, z); }
+  }
+  function bench(x, z, rotation = 0) {    // 目标图里是厚实的木板长椅：座面和靠背各有可见木条，腿是深色金属。原来只有两块薄板加两根
     // 细柱，远看就是一条线，撑不起广场的尺度。
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotation; scene.add(g);
     const wood = mat('#a9773f'), frame = mat('#3d4a4e');
@@ -194,6 +201,7 @@ globalThis.Campus3D = (() => {
     box(86, .25, 79, grass, 0, -.1, 0);
     box(7, .12, 78, pavement, 0, .04, 0); box(82, .12, 5, pavement, 0, .04, 9); box(82, .12, 5, pavement, 0, .04, -8);
     box(4, .12, 68, pavement, -12, .04, -2); box(4, .12, 68, pavement, 14, .04, -2); box(4, .1, 68, pavement, 34, .04, -1);
+    for (const [x, z, w, d] of [[0, 0, 7, 78], [0, 9, 82, 5], [0, -8, 82, 5], [-12, -2, 4, 68], [14, -2, 4, 68], [34, -1, 4, 68]]) edgeBand(x, z, w, d);
     box(89, .08, 6, road, 0, .03, 39);
     for (let x = -41; x < 42; x += 4) box(2, .02, .14, white, x, .09, 39);
     building(-22, -15, 13, 7, 6.2); building(-25, -28, 16, 6, 6.7); building(-36, -16, 6, 12, 5.5);
@@ -202,7 +210,9 @@ globalThis.Campus3D = (() => {
     building(-35,-2,8,5,3.5,'lake'); building(-7,22,5,10,4.2,'gym'); building(-24,32,10,5,3.8,'plaza');
     box(1, 5, 1, white, 20, 2.5, 33); box(1, 5, 1, white, 32, 2.5, 33); box(13, .9, 1.1, stone, 26, 4.6, 33);
     const signCanvas = document.createElement('canvas'); signCanvas.width = 512; signCanvas.height = 64; const sc = signCanvas.getContext('2d'); sc.fillStyle = '#c5c8b6'; sc.fillRect(0, 0, 512, 64); sc.fillStyle = '#374c40'; sc.font = '38px Microsoft YaHei'; sc.textAlign = 'center'; sc.fillText('江 城 大 学', 256, 46); const signTex = new THREE.CanvasTexture(signCanvas); signTex.encoding = THREE.sRGBEncoding; mesh(new THREE.PlaneGeometry(10, 1.25), new THREE.MeshStandardMaterial({ map: signTex }), 26, 4.55, 33.57);
-    cylinder(6.5, .12, pavement, 0, .15, 1, scene, 64); cylinder(3.4, .65, stone, 0, .4, 1, scene, 48); cylinder(2.95, .18, glass, 0, .76, 1, scene, 48); cylinder(.5, 1.1, white, 0, 1.2, 1); cylinder(1.35, .2, stone, 0, 1.72, 1);
+    cylinder(6.5, .12, pavement, 0, .15, 1, scene, 64);
+    // 喷泉广场的一圈收边，和道路石带同一材质。
+    const plazaKerb = mesh(new THREE.RingGeometry(6.55, 7.15, 64), kerb, 0, .215, 1); plazaKerb.rotation.x = -Math.PI / 2; plazaKerb.receiveShadow = true; cylinder(3.4, .65, stone, 0, .4, 1, scene, 48); cylinder(2.95, .18, glass, 0, .76, 1, scene, 48); cylinder(.5, 1.1, white, 0, 1.2, 1); cylinder(1.35, .2, stone, 0, 1.72, 1);
     for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const points = []; for (let j = 0; j <= 12; j++) { const f = j / 12; points.push([Math.cos(a) * f * 2.5, .8 + Math.sin(f * Math.PI) * 2, 1 + Math.sin(a) * f * 2.5]); } line(points, '#b9d9d6'); }
     const waterGeo = new THREE.CircleGeometry(12.4, 64, 0, Math.PI * 2); waterGeo.rotateX(-Math.PI / 2); waterBase = waterGeo.attributes.position.array.slice();
     water = mesh(waterGeo, new THREE.MeshStandardMaterial({ color: '#4b9190', metalness: .45, roughness: .2, transparent: true, opacity: .94 }), -26, .17, 16); water.scale.z = 1.25; water.receiveShadow = true; water.castShadow = false;
