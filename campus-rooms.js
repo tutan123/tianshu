@@ -1,9 +1,9 @@
 'use strict';
 globalThis.CampusRooms = (() => {
   const locations={
-    bookshop:{name:'南门旧书局',character:'archivist',floors:['旧书与文具','二手书档案阁'],wares:['notes','pendant']},
+    bookshop:{name:'南门旧书局',character:'archivist',floors:['旧书与文具','二手书档案阁'],wares:['notes','pendant'],activity:'bargain'},
     cafe:{name:'雨巷咖啡馆',character:'studentB',floors:['咖啡与庭院','露台小剧场'],wares:['coffee']},
-    grocery:{name:'榕树便利店',character:'shopkeeper',floors:['食品与日用'],wares:['coffee','notes']},
+    grocery:{name:'榕树便利店',character:'shopkeeper',floors:['食品与日用'],wares:['coffee','notes'],activity:'supply'},
     arcade:{name:'像素游戏厅',character:'suqi',floors:['街机与信号挑战'],game:'memory'},
     clinic:{name:'青禾社区诊所',character:'technician',floors:['候诊与诊疗'],wares:['coffee','wrist']},
     studio:{name:'回声照相馆',character:'photographer',floors:['摄影与冲印','天台创作室'],wares:['chip']},
@@ -42,7 +42,7 @@ globalThis.CampusRooms = (() => {
       {id:`${zone}-f${floor}-npc`,type:'npc',name:info?({bookshop:'旧书店主',cafe:'咖啡师夏禾',grocery:'便利店老板',arcade:'街机社社员',clinic:'值班医生',studio:'摄影师',museum:'校史研究员'}[zone]):({dorm:'二楼宿管',hall:floor===3?'观测社社长':'研讨助教',library:floor===3?'古籍修复师':'研究生学姐'}[zone]),character:info?.character||({dorm:'keeper',hall:'zhouran',library:'archivist'}[zone]),x:-8,z:1,zone,floor,text},
       {id:`${zone}-f${floor}-note`,type:'note',name:floorNames(zone)[floor-1]+' · 记录',x:11,z:-8,zone,floor,text},
       {id:`${zone}-f${floor}-chest`,type:'chest',name:floor===1?'角落里的补给匣':'楼层收藏箱',x:-12,z:-10,zone,floor,cash:45+floor*25,xp:10+floor*5},
-      ...(floor===1&&info?.wares?[{id:zone+'-shop',type:'shop',name:'柜台 · '+info.name,zone,floor,x:8,z:3,wares:info.wares,text:'柜台营业中。请选择需要的物品。'}]:[]),
+      ...(floor===1&&info?.wares?[{id:zone+'-shop',type:'shop',name:'柜台 · '+info.name,zone,floor,x:8,z:3,wares:info.wares,activity:info.activity,text:'柜台营业中。请选择需要的物品。'}]:[]),
       ...(zone==='arcade'?[{id:'arcade-terminal',type:'pc',name:'信号街机',zone,floor,x:8,z:3,game:'memory'}]:[])
     ];
   }

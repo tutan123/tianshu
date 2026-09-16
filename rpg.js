@@ -105,7 +105,12 @@ globalThis.RPG = (() => {
   function reward(s, id, score, success) {
     const r = ensure(s), previous = r.records[id];
     r.records[id] = { best: Math.max(previous?.best || 0, score), attempts: (previous?.attempts || 0) + 1, won: !!previous?.won || success };
-    if (success && !previous?.won) { xp(s, 60); TS.effect(s, { cash: 180, compute: 10 }); return true; }
+    if (success && !previous?.won) {
+      xp(s, 60); TS.effect(s, { cash: 180, compute: 10 });
+      const gift = { bargain: 'notes', supply: 'coffee' }[id];
+      if (gift) { if (r.bag[gift] < 9) r.bag[gift]++; else TS.effect(s, { cash: items[gift].price }); }
+      return true;
+    }
     return false;
   }
   function validate(r) {
@@ -113,7 +118,7 @@ globalThis.RPG = (() => {
     if (!Number.isInteger(r.xp) || r.xp < 0 || r.xp > 700 || !Array.isArray(r.owned) || new Set(r.owned).size !== r.owned.length || r.owned.some(id => !items[id]?.slot)) return null;
     if (!r.equipped || Object.keys(slots).some(slot => r.equipped[slot] !== null && (!r.owned.includes(r.equipped[slot]) || items[r.equipped[slot]].slot !== slot))) return null;
     if (!r.bag || ['coffee', 'notes'].some(id => !Number.isInteger(r.bag[id]) || r.bag[id] < 0 || r.bag[id] > 9)) return null;
-    if (!Array.isArray(r.found) || r.found.some(id => !finds[id]) || new Set(r.found).size !== r.found.length || !r.records || Object.entries(r.records).some(([id, record]) => !['salvage','memory'].includes(id) || !Number.isFinite(record.best) || record.best < 0 || record.best > 100000 || !Number.isInteger(record.attempts) || record.attempts < 1 || typeof record.won !== 'boolean')) return null;
+    if (!Array.isArray(r.found) || r.found.some(id => !finds[id]) || new Set(r.found).size !== r.found.length || !r.records || Object.entries(r.records).some(([id, record]) => !CONTENT.nodes[id]?.repeatable || !Number.isFinite(record.best) || record.best < 0 || record.best > 100000 || !Number.isInteger(record.attempts) || record.attempts < 1 || typeof record.won !== 'boolean')) return null;
     if (globalThis.Exploration) { r.world = Exploration.validate(r.world); if (!r.world) return null; }
     return r;
   }

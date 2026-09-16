@@ -30,6 +30,7 @@ globalThis.MiniGames = (() => {
   function start(type, target, s, callbacks) {
     kind = type; host = target; state = s; hooks = callbacks;
     if (['salvage', 'memory'].includes(kind)) { Arcade.start(kind, target, s, callbacks); return; }
+    if (['bargain', 'supply'].includes(kind)) { Commerce.start(kind, target, s, callbacks); return; }
     g = state.active.game;
     if (!g || g.kind !== kind) {
       if (kind === 'quiz') g = { kind, index: 0, score: 0, remaining: quizSecondsFor(s), answered: null, assisted: false };
@@ -113,6 +114,7 @@ globalThis.MiniGames = (() => {
     });
   }
   function tick(dt) {
+    if (['bargain', 'supply'].includes(kind)) return;
     if (['salvage', 'memory'].includes(kind)) { Arcade.tick(dt); return; }
     if (!g || g.finished) return;
     if (kind === 'quiz' && g.answered === null) { g.remaining -= dt; quizMeter(); if (g.remaining <= 0) answer(-1); }
@@ -124,6 +126,6 @@ globalThis.MiniGames = (() => {
     }
   }
   function key() { if (kind === 'qte') qteAction(); else if (['salvage', 'memory'].includes(kind)) Arcade.action(); }
-  function stop() { g = null; host = null; globalThis.Arcade?.stop(); }
+  function stop() { globalThis.Commerce?.stop(); g = null; host = null; globalThis.Arcade?.stop(); }
   return { start, tick, key, stop, limits };
 })();

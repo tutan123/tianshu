@@ -77,6 +77,7 @@ globalThis.TS = (() => {
     if (g === null || g === undefined) return true;
     if (typeof g !== 'object' || g.kind !== kind || g.finished === true) return false;
     if (['salvage', 'memory'].includes(kind)) return !!globalThis.Arcade?.valid(g);
+    if (['bargain', 'supply'].includes(kind)) return !!globalThis.Commerce?.valid(g);
     const number = (key, min, max) => Number.isFinite(g[key]) && g[key] >= min && g[key] <= max;
     const integer = (key, min, max) => Number.isInteger(g[key]) && number(key, min, max);
     if (kind === 'quiz') return integer('index', 0, CONTENT.quiz.length - 1) && integer('score', 0, CONTENT.quiz.length) && number('remaining', -.1, Math.max(encounterLimit('quizSeconds'), ENCOUNTER_DEFAULTS.quizSeconds)) && (g.answered === null || Number.isInteger(g.answered) && g.answered >= -1 && g.answered < CONTENT.quiz[g.index].options.length) && typeof g.assisted === 'boolean';

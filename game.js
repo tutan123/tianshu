@@ -56,6 +56,11 @@
     const actions=$('world-dialog-actions');actions.replaceChildren();
     function action(text,fn,primary=false){const b=document.createElement('button');b.className=primary?'primary':'secondary';b.textContent=text;b.onclick=fn;actions.appendChild(b);}
     if(o.type==='shop'){
+      if(o.activity){
+        const n=CONTENT.nodes[o.activity],allowed=TS.available(state).includes(o.activity);
+        $('world-dialog-text').textContent=(choice||o.text)+' '+(allowed?n.lead:'完成宿舍序章后，可接取 '+n.title+'。');
+        if(allowed)action('接受委托 · '+n.title,()=>{closeWorldDialog();enter(o.activity);},true);
+      }
       for(const id of o.wares){const item=RPG.items[id];action(`${item.name} · ¥${item.price}`,()=>{
         const bought=RPG.buy(state,id);save();hud();worldInteract(o,bought?`已购买 ${item.name}。已放入背包。`:'无法购买：请检查余额、物品持有数量或装备是否已拥有。');
       });}
@@ -144,7 +149,7 @@
     const p = CONTENT.places[selectedPlace], available = TS.available(state).filter(id => CONTENT.nodes[id].place === selectedPlace);
     const event = available.includes(selectedEvent) ? selectedEvent : available[0]; selectedEvent = event || null;
     const n = CONTENT.nodes[event], done = Object.entries(CONTENT.nodes).filter(([id, node]) => node.place === selectedPlace && state.done.includes(id)).length;
-    $('location-sheet').innerHTML = `<div class="location-photo" style="background-position:${p.x}% ${p.y}%"><span>${esc(p.en)}</span></div><div class="location-body"><div class="location-meta"><span>${n ? n.main ? '主线事件' : '羁绊支线' : '校园地点'}</span><span>${n ? n.day > state.day ? '第 ' + n.day + ' 日 · ' + n.time : n.time : '已记录 ' + done + ' 段故事'}</span></div><h2>${esc(n ? n.title : p.name)}</h2><p>${esc(n ? n.lead : p.detail)}</p>${available.length > 1 ? `<div class="location-events">${available.map(id => `<button class="event-chip ${event === id ? 'active' : ''}" data-pick="${id}">${CONTENT.nodes[id].main ? '主线' : '支线'} · ${esc(CONTENT.nodes[id].title)}</button>`).join('')}</div>` : ''}<div class="location-actions">${n ? `<button class="primary" id="enter-event" data-node="${event}"><span>${event === 'intro' ? '开启这次人生' : '前往 · ' + esc(p.name)}</span>${icon('arrow-right')}</button><button class="secondary walk-button" id="enter-walk" title="切入该地点的局部三维地图">${icon('footprints')}步行探索</button><p class="location-note">${n.main ? '命运节点' : '自由探索'} <span> / </span> ${n.kind === 'choice' ? '剧情选择' : { quiz: '认知演算', qte: '精准时机', circuit: '线索取证', combat: '战术对决', salvage: '零件回收', memory: '记忆复原' }[n.kind]}</p>` : `<button class="primary" id="location-rest">${icon('coffee')}<span>停留片刻 · 恢复 20 算力</span></button><button class="secondary walk-button" id="enter-walk" title="切入该地点的局部三维地图">${icon('footprints')}步行探索</button>`}</div></div>`;
+    $('location-sheet').innerHTML = `<div class="location-photo" style="background-position:${p.x}% ${p.y}%"><span>${esc(p.en)}</span></div><div class="location-body"><div class="location-meta"><span>${n ? n.main ? '主线事件' : '羁绊支线' : '校园地点'}</span><span>${n ? n.day > state.day ? '第 ' + n.day + ' 日 · ' + n.time : n.time : '已记录 ' + done + ' 段故事'}</span></div><h2>${esc(n ? n.title : p.name)}</h2><p>${esc(n ? n.lead : p.detail)}</p>${available.length > 1 ? `<div class="location-events">${available.map(id => `<button class="event-chip ${event === id ? 'active' : ''}" data-pick="${id}">${CONTENT.nodes[id].main ? '主线' : '支线'} · ${esc(CONTENT.nodes[id].title)}</button>`).join('')}</div>` : ''}<div class="location-actions">${n ? `<button class="primary" id="enter-event" data-node="${event}"><span>${event === 'intro' ? '开启这次人生' : '前往 · ' + esc(p.name)}</span>${icon('arrow-right')}</button><button class="secondary walk-button" id="enter-walk" title="切入该地点的局部三维地图">${icon('footprints')}步行探索</button><p class="location-note">${n.main ? '命运节点' : '自由探索'} <span> / </span> ${n.kind === 'choice' ? '剧情选择' : { quiz: '认知演算', qte: '精准时机', circuit: '线索取证', combat: '战术对决', salvage: '零件回收', memory: '记忆复原', bargain: '收购谈判', supply: '店铺经营' }[n.kind]}</p>` : `<button class="primary" id="location-rest">${icon('coffee')}<span>停留片刻 · 恢复 20 算力</span></button><button class="secondary walk-button" id="enter-walk" title="切入该地点的局部三维地图">${icon('footprints')}步行探索</button>`}</div></div>`;
     $('enter-event')?.addEventListener('click', () => enter(event));
     $('location-rest')?.addEventListener('click', rest);
     if ($('enter-walk')) $('enter-walk').hidden = !mapReady();
@@ -225,6 +230,7 @@
     if (RPG.level(state) > levelBefore) toast('宿主突破 · Lv.' + RPG.level(state) + '，攻击与生命已提升');
     MiniGames.stop(); a.phase = 'result'; a.game = null; a.text = text || (result === 'fail' ? n.fail : n.success); a.outcome = result;
     if(n.repeatable)a.text+=` 本次成绩 ${score}，最高纪录 ${RPG.ensure(state).records[a.id].best}。`+(firstWin?' 首胜奖励：¥180、60 EXP、10 算力。':' 首胜奖励仅领取一次，可继续挑战最高纪录。');
+    if(firstWin&&['bargain','supply'].includes(a.id))a.text+=` 额外补给：${RPG.items[a.id==='bargain'?'notes':'coffee'].name} 1 份（背包满额时按商店售价折入财富）。`;
     state.history.push({ id: `${a.id}:result`, who: '命运记录', text: a.text }); save(); hud(); showResult(); sound('win');
   }
   function fxText(fx = {}) {
