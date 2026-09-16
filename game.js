@@ -43,11 +43,57 @@
     $('world-interact').querySelector('span').textContent=o?o.name:'附近没有可互动对象';
   }
   function closeWorldDialog() { $('world-dialog').close(); Campus3D.setActive(!state.active); }
+  /* ── 牌桌 ────────────────────────────────────────────────────────────────
+     麻将引擎由同事的《重生2-原型 v1.6》整体移植（`mahjong.js`，见 assets/SOURCES.md）。
+     它是自包含 IIFE：自带样式、canvas 渲染、音效与提示，只需要一个宿主元素和一个
+     onFinish 回调。这里只负责铺浮层、发奖励、收拾干净。 */
+  let mahjongOn = false;
+  function openMahjong(o) {
+    if (mahjongOn) return;
+    if (!globalThis.Mahjong) { toast('牌桌还没支起来。'); return; }
+    $('mahjong-title').textContent = o?.name || '牌桌';
+    $('mahjong').hidden = false;                     // 必须先显示，引擎按视口宽度算画布尺寸
+    Campus3D.setActive(false);
+    const started = Mahjong.start($('mahjong-host'), {
+      stake: 10,
+      names: ['你', '苏祁', '林晚', '顾清河'],
+      onFinish: settleMahjong
+    });
+    if (!started) { $('mahjong').hidden = true; Campus3D.setActive(!state.active); toast('这副牌没能发出来。'); return; }
+    mahjongOn = true;
+    icons();
+  }
+  function closeMahjong() {
+    if (!mahjongOn) return;
+    try { Mahjong.dispose(); } catch (e) { /* 引擎已自清 */ }
+    $('mahjong-host').replaceChildren();
+    $('mahjong').hidden = true;
+    mahjongOn = false;
+    Campus3D.setActive(!state.active);
+  }
+  function settleMahjong(res = {}) {
+    // 首胜给一次奖励，之后只报成绩 —— 牌桌可以一直玩，但不能当成刷卡机。
+    // flags 在存档校验里只要求「是字符串且不超过 40 字」，没有白名单，所以不必改 rpg.js。
+    if (res.win && !state.flags.includes('mahjong-win')) {
+      TS.effect(state, { cash: 240, reputation: 2, flags: ['mahjong-win'] });
+      RPG.xp(state, 80);
+      toast('牌桌老千 · 首胜 ¥240、80 EXP、声望 +2');
+      sound('win');
+    } else if (res.win) {
+      toast('再度自摸 · ' + (res.fanName || '成牌') + '。这一局没有额外奖励。');
+      sound('soft');
+    } else {
+      toast((res.winner ? res.winner + '先成了牌' : '这局流了') + ' · ' + (res.fanName || '再坐一会儿'));
+      sound('soft');
+    }
+    save(); hud();
+  }
   function worldInteract(o, choice) {
     if(state.active)return;
     if(o.type==='door'){Campus3D.enterInterior(o.destination);return;}
     if(o.type==='exit'){Campus3D.exitInterior();return;}
     if(o.type==='stairs'){Campus3D.enterInterior(o.zone,o.to);return;}
+    if(o.type==='table'){openMahjong(o);return;}
     // 校外内容层先接管它自己的物件；返回 undefined 表示不归它管。
     const result=globalThis.OffCampus?.act?.(state,o.id,choice)||Exploration.act(state,o.id,choice); save();hud(); if(result.reward)sound('win');else sound('soft');
     $('world-dialog-title').textContent=o.name;
@@ -349,6 +395,9 @@
   $('floor-map').addEventListener('click',()=>Campus3D.survey());
   $('world-interact').addEventListener('click',()=>Campus3D.interact());
   $('world-dialog-close').addEventListener('click',closeWorldDialog);
+  $('mahjong-exit').addEventListener('click',closeMahjong);
+  // 牌桌开着的时候 Esc 先收牌桌，不要顺手把世界对话也关了。
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&mahjongOn){e.stopPropagation();closeMahjong();}},true);
   $('world-dialog').addEventListener('cancel',e=>{e.preventDefault();closeWorldDialog();});
   $('near-interact').addEventListener('click', () => { const id = $('near-interact').dataset.node; if (id) enter(id); });
   $('near-discover').addEventListener('click', () => {

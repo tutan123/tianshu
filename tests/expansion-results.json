@@ -1,6 +1,6 @@
 {
   "success": true,
-  "testedAt": "2026-09-16T14:05:07.850Z",
+  "testedAt": "2026-09-16T14:36:21.748Z",
   "checks": [
     "Expanded desktop canvas is nonblank",
     "World boundary area is over four times larger",
@@ -136,31 +136,31 @@
   "routes": [
     {
       "id": "bookshop",
-      "ms": 54
+      "ms": 51
     },
     {
       "id": "cafe",
-      "ms": 43
+      "ms": 42
     },
     {
       "id": "grocery",
-      "ms": 43
+      "ms": 41
     },
     {
       "id": "arcade",
-      "ms": 46
-    },
-    {
-      "id": "clinic",
       "ms": 45
     },
     {
+      "id": "clinic",
+      "ms": 47
+    },
+    {
       "id": "studio",
-      "ms": 48
+      "ms": 47
     },
     {
       "id": "museum",
-      "ms": 33
+      "ms": 30
     }
   ]
 }

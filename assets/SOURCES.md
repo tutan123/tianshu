@@ -25,3 +25,12 @@
 - Lucide: ISC, https://lucide.dev/license
 
 The minified vendor files retain their original license headers. Kenney asset use does not imply endorsement.
+
+## Mahjong engine (2026-09-13)
+
+- `mahjong.js` (154 KB, `ganma-1.0`) is **ported verbatim** from a colleague's prototype, 《重生2-原型 v1.6》. The port is byte-identical to the source file — `Get-FileHash` on both copies matches, and nothing was reformatted or trimmed.
+- It is a self-contained IIFE exposing `window.Mahjong`. It injects its own stylesheet, draws its own canvas table, and needs only a host element plus an `opts.onFinish(result)` callback. It does not read any Reborn2 page variable, so it drops into this project unchanged.
+- `tests/mahjong-logic.cjs` is that project's own 531-check logic suite (`_test_mahjong_logic.cjs`), also ported. The **only** edit is `ROOT`, so it resolves `mahjong.js` one directory up. `tests/mahjong.test.cjs` is a thin `node:test` wrapper that runs it, so `verify.cmd` picks it up automatically.
+- `audio/mj/*.mp3` (45 files, 0.45 MB) are that project's mahjong voice clips: the filename is the trigger word. Missing files are non-fatal — the engine counts them as misses and the hand continues.
+- Authorship: the Reborn2 prototype records its code as self-developed, and in turn records that what it borrowed from this project was ideas only, no code. This mahjong engine is therefore that author's work. **Confirm the arrangement with them before any public release**, and note that Reborn2's own `SOURCES.md` flags its live-action video and TTS audio as uncleared — none of that material is used here, only the mahjong code and its voice clips.
+- Integration lives in this project's own files, not in the engine: `game.js` opens the overlay and settles the result, `offcampus.js` places the table in the arcade, and `exploration.css` styles the overlay.

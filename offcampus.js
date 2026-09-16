@@ -87,9 +87,19 @@ globalThis.OffCampus = (() => {
   // 稳定 id 清单，供 Exploration.allowedIds 使用；改名或移除互动物不能让老存档失效。
   const historical = { opened: [], talked: [], switches: [...zones.map(caseId), FINALE.id], visited: [] };
 
-  // 调查线挂在已有的 f1 npc / note 上，因此这里不产生新的室内物件。
-  function objects() { return []; }
-  const allObjects = () => [];
+  // 调查线挂在已有的 f1 npc / note 上，因此调查线自身不产生新的室内物件。
+  // 像素游戏厅角落那台麻将机是另一回事：它是消遣入口，不属于调查内容层。
+  // 放在游戏厅而不是咖啡馆，是为了让 cafe 保持「零新增物件」这条不变量 ——
+  // tests/offcampus.acceptance.js 正是用 cafe 来证明调查线不引入寻路风险的。
+  const TABLE = { id: 'arcade-mahjong-table', x: -11, z: -6 };
+  function objects(zone, floor) {
+    if (zone !== 'arcade' || floor !== 1) return [];
+    return [{
+      id: TABLE.id, type: 'table', name: '角落的麻将机', x: TABLE.x, z: TABLE.z,
+      text: '机器外壳掉了漆，牌却是新洗过的。屏幕角落贴着一张手写纸条：「三缺一，随时。」'
+    }];
+  }
+  const allObjects = () => objects('arcade', 1);
   function outdoor() {
     return [{
       id: FINALE.id, type: 'develop', name: '显影台 · 荷池底片', x: FINALE.x, z: FINALE.z,

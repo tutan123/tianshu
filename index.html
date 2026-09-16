@@ -32,6 +32,7 @@
   <script defer src="world-districts.js"></script>
   <script defer src="interiors.js"></script>
   <script defer src="campus3d.js"></script>
+  <script defer src="mahjong.js"></script>
   <script defer src="game.js"></script>
 </head>
 <body>
@@ -91,6 +92,10 @@
   </section>
   <dialog id="panel"><div class="panel-header"><div><span id="panel-eyebrow">TIANSHU</span><h2 id="panel-title"></h2></div><button class="icon-button" id="close-panel" title="关闭" aria-label="关闭面板"><i data-lucide="x"></i></button></div><div id="panel-body"></div></dialog>
   <dialog id="world-dialog"><div class="world-dialog-head"><span id="world-dialog-type">校园见闻</span><button id="world-dialog-close" class="icon-button" title="结束交谈" aria-label="结束交谈"><i data-lucide="x"></i></button></div><h2 id="world-dialog-title"></h2><p id="world-dialog-text"></p><div id="world-dialog-actions"></div></dialog>
+  <section id="mahjong" hidden aria-label="牌桌">
+    <div class="mahjong-bar"><span id="mahjong-title">靠窗的牌桌</span><button class="secondary" id="mahjong-exit"><i data-lucide="door-open"></i><span>离开牌桌</span></button></div>
+    <div id="mahjong-host"></div>
+  </section>
   <div id="toasts" role="status" aria-live="polite"></div>
   <input id="import-file" type="file" accept="application/json,.json" hidden>
   <noscript>请启用 JavaScript 以开始天枢。</noscript>
