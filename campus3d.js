@@ -97,6 +97,36 @@ globalThis.Campus3D = (() => {
     WorldArt.asset(g, kind, 0, 0, 0, 4.6 * scale, (hash2(x, z, 3) % 12) * Math.PI / 6);
     return g;
   }
+  // 按坐标播种的确定性伪随机。花池与地被必须每次都长在同一个位置，否则 dream-loop 的
+  // 逐轮截图对比会把这些随机差异当成真正的代码改动。
+  const seeded = seed => { let s = (seed | 0) >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
+  // 铺装路径与喷泉环没有碰撞体，clearAt 拦不住，所以另外排一次。
+  const onPaving = (x, z) => Math.abs(x) < 3.7 || Math.abs(x + 12) < 2.2 || Math.abs(x - 14) < 2.2 || Math.abs(x - 34) < 2.2
+    || Math.abs(z - 9) < 2.7 || Math.abs(z + 8) < 2.7 || Math.hypot(x, z - 1) < 6.9;
+  const freeGround = (x, z) => !onPaving(x, z) && clearAt(x, z);
+  // 花池。目标图里广场边缘有成排的花池与地被，现在这里是整片均匀的铺装或草坪。
+  // 纯视觉、不加碰撞体：低矮花池不该阻挡通行，而且新增碰撞体有可能破坏既有的寻路验收。
+  function flowerBed(x, z, w, d) {
+    for (const [dx, dz] of [[0, 0], [-w / 2, 0], [w / 2, 0], [0, -d / 2], [0, d / 2]]) if (!freeGround(x + dx, z + dz)) return null;
+    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    box(w, .24, d, stone, 0, .12, 0, g);
+    box(w - .34, .06, d - .34, mat('#4c6652'), 0, .25, 0, g);
+    const rand = seeded(x * 131 + z * 977), kinds = ['flower_redA', 'flower_yellowC', 'flower_purpleA', 'grass_large'];
+    for (let i = 0, n = Math.max(4, Math.round(w * d * 1.2)); i < n; i++) {
+      WorldArt.asset(g, kinds[(rand() * kinds.length) | 0], (rand() - .5) * (w - .8), .27, (rand() - .5) * (d - .7), .5 + rand() * .3, rand() * 6.283);
+    }
+    return g;
+  }
+  // 草坪地被：草簇与零星草花。目标图的草坪是一丛一丛的，不是一整片纯色。
+  function groundCover(x, z, w, d, count) {
+    const rand = seeded(x * 613 + z * 271);
+    for (let i = 0; i < count; i++) {
+      const px = x + (rand() - .5) * w, pz = z + (rand() - .5) * d;
+      if (!freeGround(px, pz)) continue;
+      const kind = rand() > .55 ? 'grass_leafsLarge' : rand() > .4 ? 'flower_yellowC' : rand() > .2 ? 'flower_redA' : 'grass_large';
+      WorldArt.asset(scene, kind, px, .06, pz, .55 + rand() * .38, rand() * 6.283);
+    }
+  }
   function bench(x, z, rotation = 0) {
     // 目标图里是厚实的木板长椅：座面和靠背各有可见木条，腿是深色金属。原来只有两块薄板加两根
     // 细柱，远看就是一条线，撑不起广场的尺度。
@@ -189,6 +219,9 @@ globalThis.Campus3D = (() => {
     for (const [x, z] of [[-38, 2], [-37, 6], [-20, 0], [-31, 0], [-39, 26], [-38, 30], [18, 15], [33, -5], [30, -33]]) tree(x, z, 1.1);
     for (let z = -29; z < 34; z += 10) { lamp(-4.5, z); lamp(5, z); }
     for (const [x, z] of [[-6, 7], [7, 7], [-16, 11], [-14, 22], [16, -10]]) bench(x, z, x < -10 ? Math.PI / 2 : 0);
+    // 小尺度层次：广场花池 + 草坪地被。位置自检，压到建筑、湖面或铺装就自己跳过。
+    for (const [x, z, w, d] of [[-24, -4, 8, 3], [24, -32, 8, 3], [-16, 30, 8, 3], [30, 12, 6, 3], [-30, -22, 8, 3], [24, 14, 8, 3], [18, -12, 5, 2.4], [30, -12, 5, 2.4]]) flowerBed(x, z, w, d);
+    for (const [x, z, w, d, n] of [[-25, 2, 26, 34, 90], [26, 0, 22, 56, 110], [0, -28, 56, 16, 80], [0, 26, 34, 18, 55]]) groundCover(x, z, w, d, n);
     const pedestrianProfiles = ['studentA', 'studentB', 'photographer', 'technician', 'captain'];
     for (let i = 0; i < 20; i++) {
       const x = i % 2 ? -2 : 2, z = -30 + i * 3.1;
