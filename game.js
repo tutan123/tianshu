@@ -7,6 +7,8 @@
   const key = 'tianshu-v3-';
   function read(name) { try { return localStorage.getItem(key + name); } catch { return null; } }
   let state = TS.restore(read('auto')) || TS.fresh();
+  // 里程碑首次启用时，把此刻已经满足的静默认领下来 —— 否则带着厚存档一进游戏就连弹十几条。
+  globalThis.Achievements?.adopt(state);
   let selectedPlace = CONTENT.nodes[TS.available(state)[0] || 'finale'].place;
   let selectedEvent = null, paused = false, panelName = '', textIndex = 0, textElapsed = 0, autoElapsed = 0, lastTick = 0, saveElapsed = 0, storageWarned = false;
   let zoom = 1, panX = 0, panY = 0, audioContext, audioGain, mediaToken = 0;
@@ -167,6 +169,12 @@
     const unread = state.messages.filter(m => !m.read).length; $('message-count').textContent = unread; $('message-count').hidden = !unread;
     $('date').textContent = `2018.09.${String(state.day + 2).padStart(2, '0')} · ${state.time}`;
     document.body.classList.toggle('night', state.time === '夜晚'); document.body.classList.toggle('reduce-motion', !state.settings.motion);
+    // 里程碑：命中就记账并报一条。sync 会写下 ach-<id> 标记，所以同一枚只报一次；
+    // 顺带 save 一次，免得玩家在下次自动存档前关掉页面又得重报。
+    if (globalThis.Achievements) {
+      const fresh = Achievements.sync(state);
+      if (fresh.length) { save(); toast('里程碑 · ' + fresh.map(id => Achievements.byId(id).name).join('、')); sound('win'); }
+    }
     syncMap();
     icons();
   }

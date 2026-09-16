@@ -55,13 +55,22 @@ globalThis.GrowthUI = (() => {
     const r = RPG.ensure(s);
     return `${heading('校园收藏', `${r.found.length} / ${Object.keys(RPG.finds).length} 已归档`)}<div class="dossier-collections">${Object.entries(RPG.finds).map(([id, item]) => { const found = r.found.includes(id); return `<article class="dossier-collection ${found ? 'found' : 'locked'}"><span>${icon(found ? item.icon : 'lock-keyhole')}${escape(globalThis.CONTENT?.places?.[id]?.name || id)}</span><h3>${found ? item.name : '未发现的记忆'}</h3><p>${found ? item.text : '前往地点附近，调查留下的物件。'}</p><small>${found ? '已归档' : item.xp + ' EXP'}</small></article>`; }).join('')}</div>`;
   }
+  // 里程碑。内容全部由 Achievements 从既有状态推导，这里只负责摆出来 —— 因此
+  // 面板打开时看到的永远是当前真实进度，不存在「成就表和存档对不上」这种问题。
+  function milestones(s) {
+    if (!globalThis.Achievements) return `${heading('里程碑', '不可用')}<p class="panel-intro">里程碑模块未加载。</p>`;
+    const list = Achievements.list(s), { got, total } = Achievements.summary(s);
+    const groups = [...new Set(list.map(a => a.group))];
+    return `${heading('里程碑', `${got} / ${total} 已达成`)}<div class="dossier-milestones">${groups.map(group => `<section><h3>${escape(group)}</h3>${list.filter(a => a.group === group).map(a => `<article class="milestone ${a.got ? 'got' : 'locked'}"><span>${icon(a.got ? 'trophy' : 'lock-keyhole')}</span><div><strong>${escape(a.name)}</strong><p>${escape(a.desc)}</p></div></article>`).join('')}</section>`).join('')}</div>`;
+  }
   function render(host, s, hooks = {}, view) {
     let ui = sessions.get(host);
     if (!ui) { ui = { tab: 'profile', filter: 'all', query: '', item: '', gear: '', status: '' }; sessions.set(host, ui); }
-    if ([...tabs.map(t => t[0]), 'shop', 'finds'].includes(view)) { ui.tab = view; ui.status = ''; }
+    if ([...tabs.map(t => t[0]), 'shop', 'finds', 'milestones'].includes(view)) { ui.tab = view; ui.status = ''; }
     const main = tabs.some(t => t[0] === ui.tab);
-    const body = ({ profile, gear: () => gear(s, ui), bag: () => bag(s, ui), tasks: () => tasks(s, hooks), shop, finds })[ui.tab](s);
-    host.innerHTML = `<div class="character-ui"><nav class="dossier-tabs" role="tablist" aria-label="角色档案">${tabs.map(([id, label, name]) => `<button id="dossier-tab-${id}" role="tab" data-growth-tab="${id}" aria-controls="growth-content" aria-selected="${ui.tab === id}" tabindex="${ui.tab === id || !main && id === 'profile' ? 0 : -1}">${icon(name)}<span>${label}</span></button>`).join('')}</nav><div class="dossier-utilities"><span>Lv.${RPG.level(s)} · 陈旭</span><button data-growth-tab="shop" aria-pressed="${ui.tab === 'shop'}">${icon('shopping-bag')}后街补给</button><button data-growth-tab="finds" aria-pressed="${ui.tab === 'finds'}">${icon('scan-search')}校园收藏</button></div><div class="dossier-status" role="status" aria-live="polite">${escape(ui.status)}</div><div id="growth-content" ${main ? `role="tabpanel" aria-labelledby="dossier-tab-${ui.tab}"` : `role="region" aria-label="${ui.tab === 'shop' ? '后街补给' : '校园收藏'}"`}>${body}</div></div>`;
+    const body = ({ profile, gear: () => gear(s, ui), bag: () => bag(s, ui), tasks: () => tasks(s, hooks), shop, finds, milestones: () => milestones(s) })[ui.tab](s);
+    const utilityLabel = { shop: '后街补给', finds: '校园收藏', milestones: '里程碑' };
+    host.innerHTML = `<div class="character-ui"><nav class="dossier-tabs" role="tablist" aria-label="角色档案">${tabs.map(([id, label, name]) => `<button id="dossier-tab-${id}" role="tab" data-growth-tab="${id}" aria-controls="growth-content" aria-selected="${ui.tab === id}" tabindex="${ui.tab === id || !main && id === 'profile' ? 0 : -1}">${icon(name)}<span>${label}</span></button>`).join('')}</nav><div class="dossier-utilities"><span>Lv.${RPG.level(s)} · 陈旭</span><button data-growth-tab="shop" aria-pressed="${ui.tab === 'shop'}">${icon('shopping-bag')}后街补给</button><button data-growth-tab="finds" aria-pressed="${ui.tab === 'finds'}">${icon('scan-search')}校园收藏</button><button data-growth-tab="milestones" aria-pressed="${ui.tab === 'milestones'}">${icon('trophy')}里程碑</button></div><div class="dossier-status" role="status" aria-live="polite">${escape(ui.status)}</div><div id="growth-content" ${main ? `role="tabpanel" aria-labelledby="dossier-tab-${ui.tab}"` : `role="region" aria-label="${utilityLabel[ui.tab] || '角色档案'}"`}>${body}</div></div>`;
     const redraw = focus => { render(host, s, hooks); if (focus) host.querySelector(focus)?.focus?.(); };
     host.querySelectorAll('[data-growth-tab]').forEach(b => {
       b.onclick = () => { ui.tab = b.dataset.growthTab; ui.status = ''; redraw(`[data-growth-tab="${ui.tab}"]`); };

@@ -185,3 +185,16 @@
   .character-ui .dossier-quest{padding:12px}
   .character-ui .dossier-quest h3{font-size:15px}
 }
+
+/* ── 里程碑 ───────────────────────────────────────────────────────────────
+   与「校园收藏」同一套卡片语言，用「已达成 / 未达成」两种状态区分。 */
+.dossier-milestones section{margin-top:18px}
+.dossier-milestones h3{font-size:11px;color:var(--lime);letter-spacing:.12em;margin-bottom:9px}
+.milestone{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1px solid #ffffff1f;border-radius:4px;margin-top:8px;background:#ffffff05}
+.milestone>span{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:50%;border:1px solid #ffffff2b;color:#8b9a8b}
+.milestone strong{font-weight:400;font-size:13px}
+.milestone p{font-size:11px;color:#a9bba6;line-height:1.7;margin-top:3px}
+.milestone.got{border-color:#c9e3a352;background:#bdd69314}
+.milestone.got>span{border-color:var(--lime);color:var(--lime);box-shadow:0 0 12px #a8d47f33}
+.milestone.got strong{color:#e6edd8}
+.milestone.locked{opacity:.62}
